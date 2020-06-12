@@ -21,7 +21,14 @@
           <input type="text" name="port" value="8008" placeholder="HTTP port" @keyup="onPortChange($refs.addHostForm)" autocomplete="off" :disabled="loading" />
           <input type="text" name="websocketPort" value="8009" placeholder="Websocket port" autocomplete="off" :disabled="loading" />
           <input type="text" name="token" placeholder="Access token" autocomplete="off" :disabled="loading" />
-          <input type="submit" value="Add" :disabled="loading" />
+          <div class="row ssl">
+            <input type="checkbox" name="ssl" :disabled="loading" />
+            <label for="ssl">Use SSL</label>
+          </div>
+
+          <div class="buttons">
+            <input type="submit" value="Add" :disabled="loading" />
+          </div>
         </form>
       </div>
 
@@ -36,9 +43,34 @@
       <div class="page run" v-else-if="selectedHostOption === 'run'">
         <h2>Run a command on {{ hosts[selectedHost].name }}</h2>
         <form class="run-form" ref="runForm" @submit.prevent="runAction">
-          <input type="text" name="action" placeholder="Action name (e.g. light.hue.on)" autocomplete="off" :disabled="loading" />
-          <input type="submit" value="Run" :disabled="loading" />
+          <div class="row action-name">
+            <input type="text" name="action" v-model="action.name" placeholder="Action" autocomplete="off" :disabled="loading" />
+            <span class="help">
+              &nbsp; <a href="https://platypush.readthedocs.io/en/latest/plugins.html" target="_blank">Plugins reference</a>. Use <tt>$URL$</tt> as argument value to denote the
+              current URL.
+            </span>
+          </div>
+
+          <div class="row" v-for="(arg, i) in action.args" :key="i">
+            <div class="label">
+              <input type="text" :name="'arg' + i" v-model="arg.name" placeholder="Name" autocomplete="off" :disabled="loading" />
+            </div>
+
+            <div class="value">
+              <input type="text" :name="arg.name" v-model="arg.value" data-type="argument" placeholder="Value" autocomplete="off" :disabled="loading" />
+              <button type="button" @click="action.args.splice(i, 1)" :disabled="loading"><i class="fas fa-trash" /></button>
+            </div>
+          </div>
+
+          <div class="row buttons">
+            <button type="button" @click="addActionArgument" :disabled="loading"><i class="fas fa-plus" /> &nbsp; Add Argument</button>
+            <button type="button" @click="clearAction" :disabled="loading"><i class="fas fa-times" /> &nbsp; Clear Form</button>
+            <button type="submit" :disabled="loading"><i class="fas fa-play" /> &nbsp; Run</button>
+          </div>
         </form>
+
+        <div class="code response" v-text="actionResponse" v-if="actionResponse && (actionResponse.length || Object.keys(actionResponse).length)" />
+        <div class="code error" v-text="actionError" v-if="actionError && actionError.length" />
       </div>
 
       <div class="page edit" v-else-if="selectedHost >= 0">
@@ -57,8 +89,15 @@
           />
           <input type="text" name="websocketPort" :value="hosts[selectedHost].websocketPort" placeholder="Websocket port" autocomplete="off" :disabled="loading" />
           <input type="text" name="token" placeholder="Access token" :value="hosts[selectedHost].token" autocomplete="off" :disabled="loading" />
-          <input type="submit" value="Edit" :disabled="loading" />
-          <button type="button" @click="removeHost" :disabled="loading">Remove</button>
+          <div class="row ssl">
+            <input type="checkbox" name="ssl" :value="hosts[selectedHost].ssl" :disabled="loading" />
+            <label for="ssl">Use SSL</label>
+          </div>
+
+          <div class="buttons">
+            <input type="submit" value="Edit" :disabled="loading" />
+            <button type="button" @click="removeHost" :disabled="loading">Remove</button>
+          </div>
         </form>
       </div>
 
@@ -70,8 +109,12 @@
 </template>
 
 <script>
+import mixins from '../utils';
+
 export default {
   name: 'App',
+  mixins: [mixins],
+
   data() {
     return {
       hosts: [],
@@ -79,6 +122,12 @@ export default {
       selectedHostOption: null,
       isAddHost: false,
       loading: false,
+      actionResponse: null,
+      actionError: null,
+      action: {
+        name: null,
+        args: [],
+      },
     };
   },
 
@@ -117,6 +166,13 @@ export default {
       this.isAddHost = true;
     },
 
+    addActionArgument() {
+      this.action.args.push({
+        name: '',
+        value: '',
+      });
+    },
+
     onAddrChange(form) {
       if (form.name.value.length && !form.address.value.startsWith(form.name.value)) {
         return;
@@ -126,23 +182,56 @@ export default {
     },
 
     onPortChange(form) {
-      if (isNaN(form.port.value)) return;
-      form.websocketPort.value = '' + (parseInt(form.port.value) + 1);
+      const port = form.port.value;
+      if (!this.isPortValid(port)) return;
+      form.websocketPort.value = '' + (parseInt(port) + 1);
     },
 
     isPortValid(port) {
       port = parseInt(port);
-      return !(isNaN(port) || port < 1 || port > 65535);
+      return !isNaN(port) && port > 0 && port < 65536;
     },
 
-    async addHost() {
+    isHostFormValid(form) {
+      return form.name.value.length && form.address.value.length && this.isPortValid(form.port.value) && this.isPortValid(form.websocketPort.value);
+    },
+
+    clearAction() {
+      this.action.name = null;
+      this.action.args = [];
+      this.actionResponse = null;
+      this.actionError = null;
+    },
+
+    async runAction() {
       this.loading = true;
 
       try {
-        const host = this.formToHost(this.$refs.addHostForm);
+        this.actionResponse = await this.run(this.action, this.hosts[this.selectedHost]);
+        this.actionError = null;
+      } catch (e) {
+        this.actionResponse = null;
+        this.actionError = e.toString();
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async addHost() {
+      const form = this.$refs.addHostForm;
+      if (!this.isHostFormValid(form)) {
+        this.notify('Invalid device parameter values', 'Device configuration error');
+        return;
+      }
+
+      this.loading = true;
+
+      try {
+        const host = this.formToHost(form);
         const dupHosts = this.hosts.filter(h => h.name === host.name || (h.address === host.address && h.port === host.port));
         if (dupHosts.length) {
-          throw new Error('This device is already defined');
+          this.notify('This device is already defined', 'Duplicate device');
+          return;
         }
 
         this.hosts.push(host);
@@ -155,10 +244,16 @@ export default {
     },
 
     async editHost() {
+      const form = this.$refs.editHostForm;
+      if (!this.isHostFormValid(form)) {
+        this.notify('Invalid device parameter values', 'Device configuration error');
+        return;
+      }
+
       this.loading = true;
 
       try {
-        this.hosts[this.selectedHost] = this.formToHost(this.$refs.editHostForm);
+        this.hosts[this.selectedHost] = this.formToHost(form);
         await this.saveHosts();
       } finally {
         this.loading = false;
@@ -175,7 +270,7 @@ export default {
 
       try {
         const i = this.selectedHost;
-        if (!this.hosts.length) {
+        if (this.hosts.length <= 1) {
           this.selectedHost = -1;
         } else if (i > 0) {
           this.selectedHost = i - 1;
@@ -211,6 +306,7 @@ export default {
         address: form.address.value,
         port: parseInt(form.port.value),
         websocketPort: parseInt(form.websocketPort.value),
+        ssl: !!parseInt(form.ssl.value),
         token: form.token.value,
       };
     },
@@ -248,12 +344,29 @@ h2 {
 }
 
 .hosts {
-  width: 25%;
   background: rgba(0, 0, 0, 0.7);
   color: white;
   margin: 0;
   padding: 0;
   box-shadow: 1px 1px 1.5px 1px rgba(0, 0, 0, 0.5);
+
+  @media screen and (max-width: 800px) {
+    & {
+      width: 45%;
+    }
+  }
+
+  @media screen and (min-width: 800px) {
+    & {
+      width: 35%;
+    }
+  }
+
+  @media screen and (min-width: 1024px) {
+    & {
+      width: 25%;
+    }
+  }
 
   li {
     display: block;
@@ -267,6 +380,7 @@ h2 {
 
     &.selected {
       background-color: rgba(80, 120, 110, 0.8);
+      border: 0;
     }
   }
 
@@ -328,6 +442,85 @@ form {
     &:focus {
       border: 1px solid rgba(40, 235, 70, 0.7);
     }
+  }
+
+  .row.ssl {
+    display: flex;
+    align-items: center;
+  }
+
+  .buttons {
+    margin-top: 0.5em;
+    padding-top: 0.5em;
+    border-top: 1px solid rgba(0, 0, 0, 0.15);
+
+    button {
+      margin-right: 0.3em;
+    }
+  }
+}
+
+.run-form {
+  position: relative;
+  max-width: 50em;
+
+  .row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5em;
+    padding-bottom: 0.5em;
+  }
+
+  .label {
+    width: 30%;
+    input[type='text'] {
+      width: 90%;
+    }
+  }
+
+  .value {
+    width: 70%;
+    input[type='text'] {
+      width: 80%;
+    }
+
+    button {
+      background: white;
+      padding: 0.25em 1.5em;
+      margin-left: 0.5em;
+      border: 1px solid rgba(0, 0, 0, 0.3);
+      border-radius: 1em;
+
+      &:hover {
+        opacity: 0.8;
+      }
+    }
+  }
+
+  input {
+    display: inline-flex !important;
+    margin-bottom: 0 !important;
+  }
+
+  [type='submit'] {
+    position: absolute;
+    right: 0.9em;
+  }
+}
+
+.code {
+  padding: 1em;
+  white-space: pre-wrap;
+  font-family: monospace;
+  border: 1px dotted rgba(0, 0, 0, 0.8);
+  border-radius: 1em;
+
+  &.response {
+    background: rgba(200, 255, 200, 0.3);
+  }
+
+  &.error {
+    background: rgba(255, 200, 200, 0.3);
   }
 }
 </style>

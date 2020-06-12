@@ -1,2 +1,3 @@
 global.browser = require('webextension-polyfill');
-alert('Hello world!');
+
+// vim:sw=2:ts=2:et:
