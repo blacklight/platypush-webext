@@ -1,6 +1,13 @@
 import axios from 'axios';
 
 export default {
+  data() {
+    return {
+      loading: false,
+      hosts: [],
+    };
+  },
+
   methods: {
     notify(message, title) {
       browser.notifications.create({
@@ -50,6 +57,55 @@ export default {
         this.notify('Request error', e.toString());
         throw e;
       }
+    },
+
+    async loadHosts() {
+      this.loading = true;
+
+      try {
+        const response = await browser.storage.local.get('hosts');
+        this.hosts = JSON.parse(response.hosts);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async saveHosts() {
+      await browser.storage.local.set({ hosts: JSON.stringify(this.hosts) });
+    },
+
+    formToHost(form) {
+      return {
+        name: form.name.value,
+        address: form.address.value,
+        port: parseInt(form.port.value),
+        websocketPort: parseInt(form.websocketPort.value),
+        ssl: form.ssl.checked,
+        token: form.token.value,
+      };
+    },
+
+    onAddrChange(form) {
+      if (form.name.value.length && !form.address.value.startsWith(form.name.value)) {
+        return;
+      }
+
+      form.name.value = form.address.value;
+    },
+
+    onPortChange(form) {
+      const port = form.port.value;
+      if (!this.isPortValid(port)) return;
+      form.websocketPort.value = '' + (parseInt(port) + 1);
+    },
+
+    isPortValid(port) {
+      port = parseInt(port);
+      return !isNaN(port) && port > 0 && port < 65536;
+    },
+
+    isHostFormValid(form) {
+      return form.name.value.length && form.address.value.length && this.isPortValid(form.port.value) && this.isPortValid(form.websocketPort.value);
     },
   },
 };
