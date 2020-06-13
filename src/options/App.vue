@@ -1,16 +1,14 @@
 <template>
   <div class="container">
-    <ul class="hosts">
-      <li class="host" v-for="(host, i) in hosts" :key="i" :class="{ selected: i === selectedHost }" @click="selectHost(i)">
-        <i class="fas fa-hdd" /> &nbsp; {{ host.name }}
-        <ul class="host-menu" v-if="i === selectedHost">
-          <li v-for="(option, name) in hostOptions" :key="name" :class="{ selected: selectedHostOption === name }" @click.stop="selectHostOption(name)">
-            <i :class="option.iconClass" /> &nbsp; {{ option.displayName }}
-          </li>
-        </ul>
-      </li>
-      <li class="add" :class="{ selected: isAddHost }" @click="selectAddHost"><i class="fas fa-plus" /> &nbsp; Add Device</li>
-    </ul>
+    <Menu
+      :hosts="hosts"
+      :selectedHost="selectedHost"
+      :selectedHostOption="selectedHostOption"
+      :isAddHost="isAddHost"
+      @select-host="selectHost"
+      @select-host-option="selectHostOption"
+      @select-add-host="selectAddHost"
+    />
 
     <div class="body">
       <div class="page add" v-if="isAddHost">
@@ -90,7 +88,7 @@
           <input type="text" name="websocketPort" :value="hosts[selectedHost].websocketPort" placeholder="Websocket port" autocomplete="off" :disabled="loading" />
           <input type="text" name="token" placeholder="Access token" :value="hosts[selectedHost].token" autocomplete="off" :disabled="loading" />
           <div class="row ssl">
-            <input type="checkbox" name="ssl" :value="hosts[selectedHost].ssl" :disabled="loading" />
+            <input type="checkbox" name="ssl" v-model="hosts[selectedHost].ssl" :disabled="loading" />
             <label for="ssl">Use SSL</label>
           </div>
 
@@ -110,10 +108,12 @@
 
 <script>
 import mixins from '../utils';
+import Menu from './Menu';
 
 export default {
   name: 'App',
   mixins: [mixins],
+  components: { Menu },
 
   data() {
     return {
@@ -129,25 +129,6 @@ export default {
         args: [],
       },
     };
-  },
-
-  computed: {
-    hostOptions() {
-      return {
-        localProc: {
-          displayName: 'Local Procedures',
-          iconClass: 'fas fa-puzzle-piece',
-        },
-        remoteProc: {
-          displayName: 'Remote Procedures',
-          iconClass: 'fas fa-database',
-        },
-        run: {
-          displayName: 'Run Action',
-          iconClass: 'fas fa-play',
-        },
-      };
-    },
   },
 
   methods: {
@@ -306,7 +287,7 @@ export default {
         address: form.address.value,
         port: parseInt(form.port.value),
         websocketPort: parseInt(form.websocketPort.value),
-        ssl: !!parseInt(form.ssl.value),
+        ssl: form.ssl.checked,
         token: form.token.value,
       };
     },
@@ -341,68 +322,6 @@ h2 {
   margin-bottom: 0.75em;
   padding-bottom: 0.75em;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.hosts {
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  margin: 0;
-  padding: 0;
-  box-shadow: 1px 1px 1.5px 1px rgba(0, 0, 0, 0.5);
-
-  @media screen and (max-width: 800px) {
-    & {
-      width: 45%;
-    }
-  }
-
-  @media screen and (min-width: 800px) {
-    & {
-      width: 35%;
-    }
-  }
-
-  @media screen and (min-width: 1024px) {
-    & {
-      width: 25%;
-    }
-  }
-
-  li {
-    display: block;
-    cursor: pointer;
-    padding: 1em;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-
-    &:hover {
-      background-color: rgba(90, 140, 120, 1);
-    }
-
-    &.selected {
-      background-color: rgba(80, 120, 110, 0.8);
-      border: 0;
-    }
-  }
-
-  .host.selected {
-    padding-bottom: 0;
-  }
-}
-
-.host-menu {
-  margin: 0.5em -1em auto -1em;
-  padding-left: 0;
-
-  li {
-    list-style-type: none;
-    padding: 0.75em 2em;
-    border-bottom: 0;
-
-    &.selected {
-      background-color: rgba(60, 140, 120, 0.9);
-      padding-bottom: 0.75em;
-    }
-  }
 }
 
 .body {
