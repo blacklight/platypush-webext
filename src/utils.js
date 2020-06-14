@@ -30,6 +30,13 @@ export default {
           }, {});
       }
 
+      Object.keys(args).forEach(name => {
+        if (args[name] === '$URL$') {
+          // URL wildcard
+          args[name] = window.location.href;
+        }
+      });
+
       if (host.token && host.token.length) {
         config.headers = {
           'X-Token': host.token,
@@ -41,7 +48,7 @@ export default {
           url,
           {
             type: 'request',
-            action: this.action.name,
+            action: action.name,
             args: args,
           },
           config
