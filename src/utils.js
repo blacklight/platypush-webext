@@ -61,7 +61,7 @@ export default {
 
         return msg.data.response.output;
       } catch (e) {
-        this.notify('Request error', e.toString());
+        this.notify(e.toString(), 'Request error');
         throw e;
       }
     },
@@ -71,14 +71,57 @@ export default {
 
       try {
         const response = await browser.storage.local.get('hosts');
-        this.hosts = JSON.parse(response.hosts);
+        return JSON.parse(response.hosts);
       } finally {
         this.loading = false;
       }
     },
 
-    async saveHosts() {
-      await browser.storage.local.set({ hosts: JSON.stringify(this.hosts) });
+    async saveHosts(hosts) {
+      this.loading = true;
+      try {
+        await browser.storage.local.set({ hosts: JSON.stringify(hosts) });
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async loadActions() {
+      this.loading = true;
+
+      try {
+        const response = await browser.storage.local.get('actions');
+        return JSON.parse(response.actions);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async saveAction(action) {
+      const actions = await this.loadActions();
+      if (action.displayName in actions) {
+        if (!confirm('An action with this name already exists. Do you want to overwrite it?')) {
+          return;
+        }
+      }
+
+      actions[action.displayName] = action;
+      this.loading = true;
+
+      try {
+        await browser.storage.local.set({ actions: JSON.stringify(actions) });
+        this.notify('You can find this action under the Local Actions menu', 'Action saved');
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async loadConfig() {
+      const [hosts, actions] = await Promise.all([this.loadHosts(), this.loadActions()]);
+      return {
+        hosts: hosts,
+        actions: actions,
+      };
     },
 
     formToHost(form) {

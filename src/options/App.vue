@@ -5,13 +5,19 @@
       :selectedHost="selectedHost"
       :selectedHostOption="selectedHostOption"
       :isAddHost="isAddHost"
+      :isBackupMode="isBackupMode"
+      :isRestoreMode="isRestoreMode"
       @select-host="selectHost"
       @select-host-option="selectHostOption"
       @select-add-host="selectAddHost"
+      @select-backup-mode="selectBackupMode"
+      @select-restore-mode="selectRestoreMode"
     />
 
     <div class="body">
       <NewHost @add="addHost" v-if="isAddHost" />
+      <Backup v-else-if="isBackupMode" />
+      <Restore v-else-if="isRestoreMode" />
       <LocalCommands v-else-if="selectedHost >= 0 && selectedHostOption === 'localProc'" />
       <RemoteCommands v-else-if="selectedHost >= 0 && selectedHostOption === 'remoteProc'" />
       <Run :host="hosts[selectedHost]" v-else-if="selectedHost >= 0 && selectedHostOption === 'run'" />
@@ -28,6 +34,8 @@ import NewHost from './NewHost';
 import EditHost from './EditHost';
 import LocalCommands from './LocalCommands';
 import RemoteCommands from './RemoteCommands';
+import Backup from './Backup';
+import Restore from './Restore';
 import Run from './Run';
 
 export default {
@@ -39,6 +47,8 @@ export default {
     EditHost,
     LocalCommands,
     RemoteCommands,
+    Backup,
+    Restore,
     Run,
   },
 
@@ -47,6 +57,8 @@ export default {
       selectedHost: -1,
       selectedHostOption: null,
       isAddHost: false,
+      isBackupMode: false,
+      isRestoreMode: false,
     };
   },
 
@@ -64,6 +76,20 @@ export default {
     selectAddHost() {
       this.selectedHost = -1;
       this.isAddHost = true;
+      this.isBackupMode = false;
+      this.isRestoreMode = false;
+    },
+
+    selectBackupMode() {
+      this.isAddHost = false;
+      this.isBackupMode = true;
+      this.isRestoreMode = false;
+    },
+
+    selectRestoreMode() {
+      this.isAddHost = false;
+      this.isBackupMode = false;
+      this.isRestoreMode = true;
     },
 
     async addHost(form) {
@@ -83,7 +109,7 @@ export default {
         }
 
         this.hosts.push(host);
-        await this.saveHosts();
+        await this.saveHosts(this.hosts);
         this.selectedHost = this.hosts.length - 1;
         this.isAddHost = false;
       } finally {
@@ -134,7 +160,10 @@ export default {
   },
 
   created() {
-    this.loadHosts();
+    const self = this;
+    this.loadHosts().then(hosts => {
+      self.hosts = hosts;
+    });
   },
 };
 </script>

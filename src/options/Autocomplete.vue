@@ -72,20 +72,46 @@ export default {
     },
 
     onKeyDown(event) {
-      if (event.key === 'Enter') {
-        this.showItems = false;
-        if (!this.$refs.items) {
-          return;
+      if (!this.$refs.items) {
+        return;
+      }
+
+      const selected = this.$refs.items.querySelector('.selected');
+      if (event.key === 'Enter' || event.key === ' ' || event.key === 'Tab') {
+        switch (event.key) {
+          case 'Enter':
+          case ' ':
+            this.showItems = false;
+            if (!selected) {
+              return;
+            }
+
+            this.$refs.input.value = selected.innerText;
+            this.$emit('change', selected.innerText);
+            break;
+
+          case 'Tab':
+            this.selectNext();
+            break;
         }
 
-        const selected = this.$refs.items.querySelector('.selected');
-        if (!selected) {
-          return;
-        }
-
-        this.$refs.input.value = selected.innerText;
-        this.$emit('change', selected.innerText);
         event.preventDefault();
+      }
+    },
+
+    selectPrev() {
+      if (this.selectedItem > 0) {
+        this.selectedItem--;
+      } else {
+        this.selectedItem = this.filteredItems.length - 1;
+      }
+    },
+
+    selectNext() {
+      if (this.selectedItem >= this.filteredItems.length - 1) {
+        this.selectedItem = this.filteredItems.length ? 0 : -1;
+      } else {
+        this.selectedItem++;
       }
     },
 
@@ -100,19 +126,10 @@ export default {
       if (['ArrowUp', 'ArrowDown'].indexOf(event.key) >= 0) {
         switch (event.key) {
           case 'ArrowUp':
-            if (this.selectedItem > 0) {
-              this.selectedItem--;
-            } else {
-              this.selectedItem = this.filteredItems.length - 1;
-            }
+            this.selectPrev();
             break;
-
           case 'ArrowDown':
-            if (this.selectedItem >= this.filteredItems.length - 1) {
-              this.selectedItem = this.filteredItems.length ? 0 : -1;
-            } else {
-              this.selectedItem++;
-            }
+            this.selectNext();
             break;
         }
 

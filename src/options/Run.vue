@@ -7,7 +7,7 @@
       URL.
     </div>
 
-    <form ref="form" @submit.prevent="runAction">
+    <form ref="runForm" @submit.prevent="runAction">
       <div class="row action-head">
         <div class="action-name">
           <Autocomplete :items="Object.keys(actions)" :value="action.name" :disabled="loading" placeholder="Action" @change="onActionChange" />
@@ -49,6 +49,27 @@
         <button type="button" @click="clearAction" :disabled="loading"><i class="fas fa-times" /> &nbsp; Clear Form</button>
         <button type="submit" :disabled="loading"><i class="fas fa-play" /> &nbsp; Run</button>
       </div>
+
+      <div class="row buttons" v-if="!saveMode">
+        <button type="button" @click="saveMode = true" :disabled="loading || !(action.name && action.name.length && action.name in actions)">
+          <i class="fas fa-save" /> &nbsp; Save Action
+        </button>
+      </div>
+    </form>
+
+    <form class="save-form" ref="saveForm" @submit.prevent="storeAction" v-if="saveMode">
+      <div class="row">
+        <input type="text" name="displayName" placeholder="Action display name" />
+      </div>
+
+      <div class="row">
+        <input type="text" name="iconClass" placeholder="FontAwesome icon class (e.g. 'fas fa-play')" />
+      </div>
+
+      <div class="row buttons">
+        <button type="submit" :disabled="loading"><i class="fas fa-save" /> &nbsp; Save Action</button>
+        <button type="button" @click="saveMode = false" :disabled="loading"><i class="fas fa-times" /> &nbsp; Cancel</button>
+      </div>
     </form>
 
     <div class="code response" v-text="actionResponse" v-if="actionResponse && (actionResponse.length || Object.keys(actionResponse).length)" />
@@ -72,6 +93,7 @@ export default {
     return {
       plugins: {},
       pluginsLoading: false,
+      saveMode: false,
       actionResponse: null,
       actionError: null,
       action: {
@@ -119,21 +141,23 @@ export default {
       this.actionError = null;
     },
 
-    async runAction() {
-      this.loading = true;
-
-      const args = [...this.$refs.form.querySelectorAll('[data-type="arg"]')].map(el => {
+    getActionArgs() {
+      return [...this.$refs.runForm.querySelectorAll('[data-type="arg"]')].map(el => {
         return {
           name: el.name,
           value: el.value,
         };
       }, {});
+    },
+
+    async runAction() {
+      this.loading = true;
 
       try {
         this.actionResponse = await this.run(
           {
             name: this.action.name,
-            args: [...args, ...this.action.args],
+            args: this.getActionArgs(),
           },
           this.host
         );
@@ -170,6 +194,26 @@ export default {
       } finally {
         this.pluginsLoading = false;
       }
+    },
+
+    async storeAction(event) {
+      const saveForm = event.target;
+      const displayName = saveForm.displayName.value.trim();
+      const iconClass = saveForm.iconClass.value.trim();
+
+      if (!displayName.length) {
+        this.notify('Please specify an action name', 'No action name provided');
+        return;
+      }
+
+      const action = {
+        displayName: displayName,
+        iconClass: iconClass,
+        name: this.action.name,
+        args: this.getActionArgs(),
+      };
+
+      await this.saveAction(action);
     },
 
     onActionChange(action) {
@@ -213,7 +257,6 @@ export default {
 
 form {
   position: relative;
-  max-width: 50em;
 
   .row {
     display: flex;
@@ -256,6 +299,16 @@ form {
   [type='submit'] {
     position: absolute;
     right: 0.9em;
+  }
+}
+
+.save-form {
+  margin-top: 2em;
+
+  input[type='text'] {
+    width: 60%;
+    min-width: 20em;
+    max-width: 35em;
   }
 }
 
