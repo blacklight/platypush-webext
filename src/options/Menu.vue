@@ -8,7 +8,10 @@
         </li>
       </ul>
     </li>
+
     <li class="add" :class="{ selected: isAddHost }" @click="$emit('select-add-host')"><i class="fas fa-plus" /> &nbsp; Add Device</li>
+    <li class="backup" :class="{ selected: isBackupMode }" @click="$emit('select-backup-mode')"><i class="fas fa-save" /> &nbsp; Backup Configuration</li>
+    <li class="restore" :class="{ selected: isRestoreMode }" @click="$emit('select-restore-mode')"><i class="fas fa-window-restore" /> &nbsp; Restore Configuration</li>
   </ul>
 </template>
 
@@ -20,13 +23,15 @@ export default {
     selectedHost: Number,
     selectedHostOption: String,
     isAddHost: Boolean,
+    isBackupMode: Boolean,
+    isRestoreMode: Boolean,
   },
 
   computed: {
     hostOptions() {
       return {
         localProc: {
-          displayName: 'Local Procedures',
+          displayName: 'Local Actions',
           iconClass: 'fas fa-puzzle-piece',
         },
         remoteProc: {
