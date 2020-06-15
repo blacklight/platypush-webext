@@ -8,7 +8,7 @@ export default {
   },
 
   methods: {
-    notify(message, title) {
+    notify(message, title = 'platypush') {
       browser.notifications.create({
         type: 'basic',
         title: title,
@@ -128,11 +128,17 @@ export default {
     },
 
     async loadConfig() {
-      const [hosts, actions] = await Promise.all([this.getHosts(), this.getActions()]);
-      return {
-        hosts: hosts,
-        actions: actions,
-      };
+      this.loading = true;
+
+      try {
+        const [hosts, actions] = await Promise.all([this.getHosts(), this.getActions()]);
+        return {
+          hosts: hosts,
+          actions: actions,
+        };
+      } finally {
+        this.loading = false;
+      }
     },
 
     formToHost(form) {
