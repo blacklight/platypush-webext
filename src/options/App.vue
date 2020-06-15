@@ -1,27 +1,14 @@
 <template>
   <div class="container">
-    <Menu
-      :hosts="hosts"
-      :selectedHost="selectedHost"
-      :selectedHostOption="selectedHostOption"
-      :isAddHost="isAddHost"
-      :isBackupMode="isBackupMode"
-      :isRestoreMode="isRestoreMode"
-      @select-host="selectHost"
-      @select-host-option="selectHostOption"
-      @select-add-host="selectAddHost"
-      @select-backup-mode="selectBackupMode"
-      @select-restore-mode="selectRestoreMode"
-    />
+    <Menu :hosts="hosts" :selectedTab="selectedTab" :selectedHost="selectedHost" :selectedHostOption="selectedHostOption" @select="select" />
 
     <div class="body">
-      <NewHost @add="addHost" v-if="isAddHost" />
-      <Backup v-else-if="isBackupMode" />
-      <Restore v-else-if="isRestoreMode" />
-      <LocalCommands v-else-if="selectedHost && selectedHostOption === 'localProc'" />
-      <RemoteCommands v-else-if="selectedHost && selectedHostOption === 'remoteProc'" />
-      <Run :host="hosts[selectedHost]" v-else-if="selectedHost && selectedHostOption === 'run'" />
-      <EditHost :host="hosts[selectedHost]" @save="editHost" @remove="removeHost" v-else-if="selectedHost" />
+      <NewHost @add="addHost" v-if="selectedTab === 'add'" />
+      <Config v-else-if="selectedTab === 'config'" />
+      <LocalCommands v-else-if="selectedTab === 'host' && selectedHostOption === 'localProc'" />
+      <RemoteCommands v-else-if="selectedTab === 'host' && selectedHostOption === 'remoteProc'" />
+      <Run :host="hosts[selectedHost]" v-else-if="selectedTab === 'host' && selectedHostOption === 'run'" />
+      <EditHost :host="hosts[selectedHost]" @save="editHost" @remove="removeHost" v-else-if="selectedTab === 'host'" />
       <div class="none" v-else>Select an option from the menu</div>
     </div>
   </div>
@@ -34,8 +21,7 @@ import NewHost from './NewHost';
 import EditHost from './EditHost';
 import LocalCommands from './LocalCommands';
 import RemoteCommands from './RemoteCommands';
-import Backup from './Backup';
-import Restore from './Restore';
+import Config from './Config';
 import Run from './Run';
 
 export default {
@@ -47,54 +33,24 @@ export default {
     EditHost,
     LocalCommands,
     RemoteCommands,
-    Backup,
-    Restore,
+    Config,
     Run,
   },
 
   data() {
     return {
       hosts: {},
+      selectedTab: null,
       selectedHost: null,
       selectedHostOption: null,
-      isAddHost: false,
-      isBackupMode: false,
-      isRestoreMode: false,
     };
   },
 
   methods: {
-    selectHost(i) {
-      this.selectedHost = i;
-      this.selectedHostOption = null;
-      this.isAddHost = false;
-      this.isBackupMode = false;
-      this.isRestoreMode = false;
-    },
-
-    selectHostOption(option) {
-      this.selectedHostOption = option;
-    },
-
-    selectAddHost() {
-      this.selectedHost = null;
-      this.isAddHost = true;
-      this.isBackupMode = false;
-      this.isRestoreMode = false;
-    },
-
-    selectBackupMode() {
-      this.selectedHost = null;
-      this.isAddHost = false;
-      this.isBackupMode = true;
-      this.isRestoreMode = false;
-    },
-
-    selectRestoreMode() {
-      this.selectedHost = null;
-      this.isAddHost = false;
-      this.isBackupMode = false;
-      this.isRestoreMode = true;
+    select(tab, host, hostOption) {
+      this.selectedTab = tab;
+      this.selectedHost = host;
+      this.selectedHostOption = hostOption;
     },
 
     async addHost(form) {

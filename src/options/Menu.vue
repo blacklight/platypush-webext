@@ -1,17 +1,21 @@
 <template>
   <ul class="menu">
-    <li class="host" v-for="(host, hostname) in hosts" :key="hostname" :class="{ selected: hostname === selectedHost }" @click="$emit('select-host', hostname)">
+    <li class="host" v-for="(host, hostname) in hosts" :key="hostname" :class="{ selected: hostname === selectedHost }" @click="$emit('select', 'host', hostname)">
       <i class="fas fa-hdd" /> &nbsp; {{ host.name }}
       <ul class="host-menu" v-if="hostname === selectedHost">
-        <li v-for="(option, name) in hostOptions" :key="name" :class="{ selected: selectedHostOption === name }" @click.stop="$emit('select-host-option', name)">
+        <li
+          v-for="(option, optionName) in hostOptions"
+          :key="optionName"
+          :class="{ selected: selectedHostOption === optionName }"
+          @click.stop="$emit('select', 'host', hostname, optionName)"
+        >
           <i :class="option.iconClass" /> &nbsp; {{ option.displayName }}
         </li>
       </ul>
     </li>
 
-    <li class="add" :class="{ selected: isAddHost }" @click="$emit('select-add-host')"><i class="fas fa-plus" /> &nbsp; Add Device</li>
-    <li class="backup" :class="{ selected: isBackupMode }" @click="$emit('select-backup-mode')"><i class="fas fa-save" /> &nbsp; Backup Configuration</li>
-    <li class="restore" :class="{ selected: isRestoreMode }" @click="$emit('select-restore-mode')"><i class="fas fa-window-restore" /> &nbsp; Restore Configuration</li>
+    <li class="add" :class="{ selected: selectedTab === 'add' }" @click="$emit('select', 'add')"><i class="fas fa-plus" /> &nbsp; Add Device</li>
+    <li class="config" :class="{ selected: selectedTab === 'config' }" @click="$emit('select', 'config')"><i class="fas fa-cog" /> &nbsp; Configuration</li>
   </ul>
 </template>
 
@@ -20,11 +24,9 @@ export default {
   name: 'Menu',
   props: {
     hosts: Object,
+    selectedTab: String,
     selectedHost: String,
     selectedHostOption: String,
-    isAddHost: Boolean,
-    isBackupMode: Boolean,
-    isRestoreMode: Boolean,
   },
 
   computed: {
