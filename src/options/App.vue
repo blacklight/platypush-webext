@@ -18,10 +18,10 @@
       <NewHost @add="addHost" v-if="isAddHost" />
       <Backup v-else-if="isBackupMode" />
       <Restore v-else-if="isRestoreMode" />
-      <LocalCommands v-else-if="selectedHost >= 0 && selectedHostOption === 'localProc'" />
-      <RemoteCommands v-else-if="selectedHost >= 0 && selectedHostOption === 'remoteProc'" />
-      <Run :host="hosts[selectedHost]" v-else-if="selectedHost >= 0 && selectedHostOption === 'run'" />
-      <EditHost :host="hosts[selectedHost]" @save="editHost" @remove="removeHost" v-else-if="selectedHost >= 0" />
+      <LocalCommands v-else-if="selectedHost && selectedHostOption === 'localProc'" />
+      <RemoteCommands v-else-if="selectedHost && selectedHostOption === 'remoteProc'" />
+      <Run :host="hosts[selectedHost]" v-else-if="selectedHost && selectedHostOption === 'run'" />
+      <EditHost :host="hosts[selectedHost]" @save="editHost" @remove="removeHost" v-else-if="selectedHost" />
       <div class="none" v-else>Select an option from the menu</div>
     </div>
   </div>
@@ -54,7 +54,8 @@ export default {
 
   data() {
     return {
-      selectedHost: -1,
+      hosts: {},
+      selectedHost: null,
       selectedHostOption: null,
       isAddHost: false,
       isBackupMode: false,
@@ -67,6 +68,8 @@ export default {
       this.selectedHost = i;
       this.selectedHostOption = null;
       this.isAddHost = false;
+      this.isBackupMode = false;
+      this.isRestoreMode = false;
     },
 
     selectHostOption(option) {
@@ -74,19 +77,21 @@ export default {
     },
 
     selectAddHost() {
-      this.selectedHost = -1;
+      this.selectedHost = null;
       this.isAddHost = true;
       this.isBackupMode = false;
       this.isRestoreMode = false;
     },
 
     selectBackupMode() {
+      this.selectedHost = null;
       this.isAddHost = false;
       this.isBackupMode = true;
       this.isRestoreMode = false;
     },
 
     selectRestoreMode() {
+      this.selectedHost = null;
       this.isAddHost = false;
       this.isBackupMode = false;
       this.isRestoreMode = true;
@@ -102,15 +107,15 @@ export default {
 
       try {
         const host = this.formToHost(form);
-        const dupHosts = this.hosts.filter(h => h.name === host.name || (h.address === host.address && h.port === host.port));
+        const dupHosts = Object.values(this.hosts).filter(h => h.name === host.name || (h.address === host.address && h.port === host.port));
         if (dupHosts.length) {
           this.notify('This device is already defined', 'Duplicate device');
           return;
         }
 
-        this.hosts.push(host);
+        this.hosts[host.name] = host;
         await this.saveHosts(this.hosts);
-        this.selectedHost = this.hosts.length - 1;
+        this.selectedHost = Object.keys(this.hosts)[Object.keys(this.hosts).length - 1];
         this.isAddHost = false;
       } finally {
         this.loading = false;
@@ -127,7 +132,7 @@ export default {
 
       try {
         this.hosts[this.selectedHost] = this.formToHost(form);
-        await this.saveHosts();
+        await this.saveHosts(this.hosts);
       } finally {
         this.loading = false;
       }
@@ -143,16 +148,14 @@ export default {
 
       try {
         const i = this.selectedHost;
-        if (this.hosts.length <= 1) {
-          this.selectedHost = -1;
-        } else if (i > 0) {
-          this.selectedHost = i - 1;
+        if (Object.keys(this.hosts).length <= 1) {
+          this.selectedHost = null;
         } else {
-          this.selectedHost = 0;
+          this.selectedHost = Object.keys(this.hosts)[0];
         }
 
-        this.hosts.splice(i, 1);
-        await this.saveHosts();
+        delete this.hosts[i];
+        await this.saveHosts(this.hosts);
       } finally {
         this.loading = false;
       }
@@ -161,7 +164,7 @@ export default {
 
   created() {
     const self = this;
-    this.loadHosts().then(hosts => {
+    this.getHosts().then(hosts => {
       self.hosts = hosts;
     });
   },

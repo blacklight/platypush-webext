@@ -126,7 +126,7 @@ export default {
 
     actionTemplate() {
       if (!(this.action.name in this.actions)) {
-        return { args: [] };
+        return { args: {} };
       }
 
       return this.actions[this.action.name];
@@ -142,11 +142,9 @@ export default {
     },
 
     getActionArgs() {
-      return [...this.$refs.runForm.querySelectorAll('[data-type="arg"]')].map(el => {
-        return {
-          name: el.name,
-          value: el.value,
-        };
+      return [...this.$refs.runForm.querySelectorAll('[data-type="arg"]')].reduce((obj, el) => {
+        obj[el.name] = el.value;
+        return obj;
       }, {});
     },
 

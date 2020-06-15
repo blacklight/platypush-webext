@@ -4,7 +4,6 @@ export default {
   data() {
     return {
       loading: false,
-      hosts: [],
     };
   },
 
@@ -66,11 +65,15 @@ export default {
       }
     },
 
-    async loadHosts() {
+    async getHosts() {
       this.loading = true;
 
       try {
         const response = await browser.storage.local.get('hosts');
+        if (!response.hosts) {
+          return {};
+        }
+
         return JSON.parse(response.hosts);
       } finally {
         this.loading = false;
@@ -86,19 +89,33 @@ export default {
       }
     },
 
-    async loadActions() {
+    async getActions() {
       this.loading = true;
 
       try {
         const response = await browser.storage.local.get('actions');
+        if (!response.actions) {
+          return {};
+        }
+
         return JSON.parse(response.actions);
       } finally {
         this.loading = false;
       }
     },
 
+    async saveActions(actions) {
+      this.loading = true;
+
+      try {
+        await browser.storage.local.set({ actions: JSON.stringify(actions) });
+      } finally {
+        this.loading = false;
+      }
+    },
+
     async saveAction(action) {
-      const actions = await this.loadActions();
+      const actions = await this.getActions();
       if (action.displayName in actions) {
         if (!confirm('An action with this name already exists. Do you want to overwrite it?')) {
           return;
@@ -106,18 +123,12 @@ export default {
       }
 
       actions[action.displayName] = action;
-      this.loading = true;
-
-      try {
-        await browser.storage.local.set({ actions: JSON.stringify(actions) });
-        this.notify('You can find this action under the Local Actions menu', 'Action saved');
-      } finally {
-        this.loading = false;
-      }
+      await this.saveActions(actions);
+      this.notify('You can find this action under the Local Actions menu', 'Action saved');
     },
 
     async loadConfig() {
-      const [hosts, actions] = await Promise.all([this.loadHosts(), this.loadActions()]);
+      const [hosts, actions] = await Promise.all([this.getHosts(), this.getActions()]);
       return {
         hosts: hosts,
         actions: actions,
