@@ -1,8 +1,8 @@
 <template>
   <ul class="menu">
-    <li class="host" v-for="(host, i) in hosts" :key="i" :class="{ selected: i === selectedHost }" @click="$emit('select-host', i)">
+    <li class="host" v-for="(host, hostname) in hosts" :key="hostname" :class="{ selected: hostname === selectedHost }" @click="$emit('select-host', hostname)">
       <i class="fas fa-hdd" /> &nbsp; {{ host.name }}
-      <ul class="host-menu" v-if="i === selectedHost">
+      <ul class="host-menu" v-if="hostname === selectedHost">
         <li v-for="(option, name) in hostOptions" :key="name" :class="{ selected: selectedHostOption === name }" @click.stop="$emit('select-host-option', name)">
           <i :class="option.iconClass" /> &nbsp; {{ option.displayName }}
         </li>
@@ -19,8 +19,8 @@
 export default {
   name: 'Menu',
   props: {
-    hosts: Array,
-    selectedHost: Number,
+    hosts: Object,
+    selectedHost: String,
     selectedHostOption: String,
     isAddHost: Boolean,
     isBackupMode: Boolean,
