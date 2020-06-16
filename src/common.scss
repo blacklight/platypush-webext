@@ -49,4 +49,24 @@ form {
   }
 }
 
+.hidden {
+  display: none !important;
+}
+
+.code {
+  padding: 1em;
+  white-space: pre-wrap;
+  font-family: monospace;
+  border: 1px dotted rgba(0, 0, 0, 0.8);
+  border-radius: 1em;
+
+  &.response {
+    background: rgba(200, 255, 200, 0.3);
+  }
+
+  &.error {
+    background: rgba(255, 200, 200, 0.3);
+  }
+}
+
 // vim:sw=2:ts=2:et:

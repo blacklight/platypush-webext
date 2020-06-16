@@ -9,7 +9,7 @@
           <input type="radio" id="_file" value="file" v-model="extConfigType" />
           <label for="_file">From file</label>
           <input type="radio" id="_url" value="url" v-model="extConfigType" />
-          <label for="_file">From URL</label>
+          <label for="_url">From URL</label>
         </div>
 
         <div class="body">

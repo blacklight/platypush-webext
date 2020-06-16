@@ -1,6 +1,12 @@
 <template>
   <ul class="menu">
-    <li class="host" v-for="(host, hostname) in hosts" :key="hostname" :class="{ selected: hostname === selectedHost }" @click="$emit('select', 'host', hostname)">
+    <li
+      class="host"
+      v-for="(host, hostname) in hosts"
+      :key="hostname"
+      :class="{ selected: hostname === selectedHost }"
+      @click="$emit('select', 'host', hostname, hostname === selectedHost ? null : selectedHostOption)"
+    >
       <i class="fas fa-hdd" /> &nbsp; {{ host.name }}
       <ul class="host-menu" v-if="hostname === selectedHost">
         <li
