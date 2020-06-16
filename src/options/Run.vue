@@ -66,6 +66,14 @@
         <input type="text" name="iconClass" placeholder="FontAwesome icon class (e.g. 'fas fa-play')" />
       </div>
 
+      <div class="row multiple-host-selector">
+        <div class="desc">
+          Install action on these devices
+        </div>
+
+        <MultipleHostSelector :hosts="hosts" :selected="[host.name]" />
+      </div>
+
       <div class="row buttons">
         <button type="submit" :disabled="loading"><i class="fas fa-save" /> &nbsp; Save Action</button>
         <button type="button" @click="saveMode = false" :disabled="loading"><i class="fas fa-times" /> &nbsp; Cancel</button>
@@ -80,13 +88,18 @@
 <script>
 import mixins from '../utils';
 import Autocomplete from './Autocomplete';
+import MultipleHostSelector from './MultipleHostSelector';
 
 export default {
   name: 'Run',
   mixins: [mixins],
-  components: { Autocomplete },
   props: {
     host: Object,
+  },
+
+  components: {
+    Autocomplete,
+    MultipleHostSelector,
   },
 
   data() {
@@ -96,6 +109,7 @@ export default {
       saveMode: false,
       actionResponse: null,
       actionError: null,
+      hosts: {},
       action: {
         name: null,
         args: [],
@@ -198,9 +212,15 @@ export default {
       const saveForm = event.target;
       const displayName = saveForm.displayName.value.trim();
       const iconClass = saveForm.iconClass.value.trim();
+      const hosts = [...saveForm.querySelectorAll('input[data-type="host"]:checked')].map(el => el.value);
 
       if (!displayName.length) {
         this.notify('Please specify an action name', 'No action name provided');
+        return;
+      }
+
+      if (!hosts.length) {
+        this.notify('Please specify at least one device where the action should run', 'No devices provided');
         return;
       }
 
@@ -209,9 +229,14 @@ export default {
         iconClass: iconClass,
         name: this.action.name,
         args: this.getActionArgs(),
+        hosts: hosts,
       };
 
       await this.saveAction(action);
+    },
+
+    async loadHosts() {
+      this.hosts = await this.getHosts();
     },
 
     onActionChange(action) {
@@ -222,6 +247,7 @@ export default {
 
   created() {
     this.clearAction();
+    this.loadHosts();
     this.loadPlugins();
   },
 };
@@ -310,19 +336,14 @@ form {
   }
 }
 
-.code {
-  padding: 1em;
-  white-space: pre-wrap;
-  font-family: monospace;
-  border: 1px dotted rgba(0, 0, 0, 0.8);
-  border-radius: 1em;
+.multiple-host-selector {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start !important;
+  margin-top: 2em;
 
-  &.response {
-    background: rgba(200, 255, 200, 0.3);
-  }
-
-  &.error {
-    background: rgba(255, 200, 200, 0.3);
+  .desc {
+    margin-bottom: 0.75em;
   }
 }
 </style>

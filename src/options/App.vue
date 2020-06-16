@@ -5,7 +5,7 @@
     <div class="body">
       <NewHost @add="addHost" v-if="selectedTab === 'add'" />
       <Config v-else-if="selectedTab === 'config'" @reload="reload" />
-      <LocalCommands v-else-if="selectedHost && selectedHostOption === 'localProc'" />
+      <LocalCommands :host="selectedHost" v-else-if="selectedHost && selectedHostOption === 'localProc'" />
       <RemoteCommands v-else-if="selectedHost && selectedHostOption === 'remoteProc'" />
       <Run :host="hosts[selectedHost]" v-else-if="selectedHost && selectedHostOption === 'run'" />
       <EditHost :host="hosts[selectedHost]" @save="editHost" @remove="removeHost" v-else-if="selectedHost" />
