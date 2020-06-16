@@ -4,11 +4,11 @@
 
     <div class="body">
       <NewHost @add="addHost" v-if="selectedTab === 'add'" />
-      <Config v-else-if="selectedTab === 'config'" />
-      <LocalCommands v-else-if="selectedTab === 'host' && selectedHostOption === 'localProc'" />
-      <RemoteCommands v-else-if="selectedTab === 'host' && selectedHostOption === 'remoteProc'" />
-      <Run :host="hosts[selectedHost]" v-else-if="selectedTab === 'host' && selectedHostOption === 'run'" />
-      <EditHost :host="hosts[selectedHost]" @save="editHost" @remove="removeHost" v-else-if="selectedTab === 'host'" />
+      <Config v-else-if="selectedTab === 'config'" @reload="reload" />
+      <LocalCommands v-else-if="selectedHost && selectedHostOption === 'localProc'" />
+      <RemoteCommands v-else-if="selectedHost && selectedHostOption === 'remoteProc'" />
+      <Run :host="hosts[selectedHost]" v-else-if="selectedHost && selectedHostOption === 'run'" />
+      <EditHost :host="hosts[selectedHost]" @save="editHost" @remove="removeHost" v-else-if="selectedHost" />
       <div class="none" v-else>Select an option from the menu</div>
     </div>
   </div>
@@ -53,6 +53,10 @@ export default {
       this.selectedHostOption = hostOption;
     },
 
+    async reload() {
+      this.hosts = await this.getHosts();
+    },
+
     async addHost(form) {
       if (!this.isHostFormValid(form)) {
         this.notify('Invalid device parameter values', 'Device configuration error');
@@ -71,8 +75,8 @@ export default {
 
         this.hosts[host.name] = host;
         await this.saveHosts(this.hosts);
-        this.selectedHost = Object.keys(this.hosts)[Object.keys(this.hosts).length - 1];
-        this.isAddHost = false;
+        await this.reload();
+        this.select('host', Object.keys(this.hosts)[Object.keys(this.hosts).length - 1]);
       } finally {
         this.loading = false;
       }
@@ -104,14 +108,16 @@ export default {
 
       try {
         const i = this.selectedHost;
-        if (Object.keys(this.hosts).length <= 1) {
+        delete this.hosts[i];
+        await this.saveHosts(this.hosts);
+
+        if (!Object.keys(this.hosts).length) {
           this.selectedHost = null;
         } else {
           this.selectedHost = Object.keys(this.hosts)[0];
         }
 
-        delete this.hosts[i];
-        await this.saveHosts(this.hosts);
+        await this.reload();
       } finally {
         this.loading = false;
       }
@@ -119,10 +125,7 @@ export default {
   },
 
   created() {
-    const self = this;
-    this.getHosts().then(hosts => {
-      self.hosts = hosts;
-    });
+    this.reload();
   },
 };
 </script>

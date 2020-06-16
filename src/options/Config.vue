@@ -21,7 +21,7 @@
 
       <form class="content" ref="content" @submit.prevent="save">
         <div class="textarea">
-          <textarea ref="text" v-model="config" v-text="loading ? 'Loading...' : config" @focus="onFocus" :disabled="loading" />
+          <textarea name="text" ref="text" v-model="config" v-text="loading ? 'Loading...' : config" @focus="onFocus" :disabled="loading" />
         </div>
 
         <div class="buttons">
@@ -34,11 +34,13 @@
 </template>
 
 <script>
+import axios from 'axios';
 import mixins from '../utils';
 
 export default {
   name: 'Backup',
   mixins: [mixins],
+
   data() {
     return {
       config: null,
@@ -62,7 +64,21 @@ export default {
       this.savedConfig = this.config;
     },
 
-    save(event) {},
+    async save(event) {
+      this.loading = true;
+
+      try {
+        const config = JSON.parse(event.target.text.value);
+        await this.saveConfig(config);
+        await this.reload();
+        this.$emit('reload');
+      } catch (e) {
+        console.warn(e);
+        this.notify(e.message, 'Could not save the configuration');
+      } finally {
+        this.loading = false;
+      }
+    },
 
     uploadFile(event) {
       if (!(event.target.files && event.target.files.length)) {
@@ -86,8 +102,19 @@ export default {
       reader.readAsText(event.target.files[0]);
     },
 
-    loadURL(event) {
-      console.log(event);
+    async loadURL(event) {
+      const url = event.target.url.value.trim();
+      this.loading = true;
+
+      try {
+        const response = await axios.get(url);
+        this.config = JSON.stringify(response.data, null, '  ');
+      } catch (e) {
+        console.warn(e);
+        this.notify(e.message, 'Unable to parse the URL');
+      } finally {
+        this.loading = false;
+      }
     },
   },
 
