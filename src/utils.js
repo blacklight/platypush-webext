@@ -141,6 +141,18 @@ export default {
       }
     },
 
+    async saveConfig(config) {
+      this.loading = true;
+      const hosts = config.hosts || {};
+      const actions = config.actions || {};
+
+      try {
+        await Promise.all([this.saveHosts(hosts), this.saveActions(actions)]);
+      } finally {
+        this.loading = false;
+      }
+    },
+
     formToHost(form) {
       return {
         name: form.name.value,
