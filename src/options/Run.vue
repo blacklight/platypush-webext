@@ -25,7 +25,7 @@
             :name="name"
             :value="arg.default"
             data-type="arg"
-            :placeholder="arg.doc && arg.doc.length ? arg.doc.substr(0, 50) : 'Value'"
+            :placeholder="arg.doc && arg.doc.length ? arg.doc : 'Value'"
             autocomplete="off"
             :disabled="loading"
           />
