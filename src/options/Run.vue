@@ -2,62 +2,88 @@
   <div class="page run">
     <h2>Run a command on {{ host.name }}</h2>
 
-    <div class="help">
-      &nbsp; <a href="https://platypush.readthedocs.io/en/latest/plugins.html" target="_blank">Plugins reference</a>. Use <tt>$URL$</tt> as argument value to denote the current
-      URL.
+    <div class="mode-selector">
+      Action mode
+
+      <div class="buttons">
+        <input type="radio" value="request" id="_request" v-model="actionMode" />
+        <label for="_request"> &nbsp; Request</label>
+        <input type="radio" value="script" id="_script" v-model="actionMode" />
+        <label for="_script"> &nbsp; Script</label>
+      </div>
     </div>
 
-    <form ref="runForm" @submit.prevent="runAction">
-      <div class="row action-head">
-        <div class="action-name">
-          <Autocomplete :items="Object.keys(actions)" :value="action.name" :disabled="loading" placeholder="Action" @change="onActionChange" />
-        </div>
-        <div class="action-doc" v-text="actionTemplate.doc" v-if="actionTemplate.doc" />
+    <div v-if="actionMode === 'request'">
+      <div class="help">
+        &nbsp; <a href="https://platypush.readthedocs.io/en/latest/plugins.html" target="_blank">Plugins reference</a>. Use <tt>$URL$</tt> as argument value to denote the current
+        URL. You can also call remotely stored procedure through <tt>procedure.&lt;procedure_name&gt;</tt>.
       </div>
 
-      <div class="row" v-for="(arg, name) in actionTemplate.args" :key="name">
-        <div class="label">
-          <input type="text" :name="'arg_' + name" :value="name" autocomplete="off" disabled />
+      <form ref="runForm" @submit.prevent="runAction">
+        <div class="row action-head">
+          <div class="action-name">
+            <Autocomplete :items="Object.keys(actions)" :value="action.name" :disabled="loading" placeholder="Action" @change="onActionChange" />
+          </div>
+          <div class="action-doc" v-text="actionTemplate.doc" v-if="actionTemplate.doc" />
         </div>
-        <div class="value">
-          <input
-            type="text"
-            :name="name"
-            :value="arg.default"
-            data-type="arg"
-            :placeholder="arg.doc && arg.doc.length ? arg.doc : 'Value'"
-            autocomplete="off"
-            :disabled="loading"
-          />
-        </div>
-      </div>
 
-      <div class="row" v-for="(arg, i) in action.args" :key="i">
-        <div class="label">
-          <input type="text" :name="'arg_' + i" v-model="arg.name" placeholder="Name" autocomplete="off" :disabled="loading" />
+        <div class="row" v-for="(arg, name) in actionTemplate.args" :key="name">
+          <div class="label">
+            <input type="text" :name="'arg_' + name" :value="name" autocomplete="off" disabled />
+          </div>
+          <div class="value">
+            <input
+              type="text"
+              :name="name"
+              :value="arg.default"
+              data-type="arg"
+              :placeholder="arg.doc && arg.doc.length ? arg.doc : 'Value'"
+              autocomplete="off"
+              :disabled="loading"
+            />
+          </div>
         </div>
-        <div class="value">
-          <input type="text" :name="arg.name" v-model="arg.value" data-type="arg" placeholder="Value" autocomplete="off" :disabled="loading" />
-          <button type="button" @click="action.args.splice(i, 1)" :disabled="loading">
-            <i class="fas fa-trash" />
+
+        <div class="row" v-for="(arg, i) in action.args" :key="i">
+          <div class="label">
+            <input type="text" :name="'arg_' + i" v-model="arg.name" placeholder="Name" autocomplete="off" :disabled="loading" />
+          </div>
+          <div class="value">
+            <input type="text" :name="arg.name" v-model="arg.value" data-type="arg" placeholder="Value" autocomplete="off" :disabled="loading" />
+            <button type="button" @click="action.args.splice(i, 1)" :disabled="loading">
+              <i class="fas fa-trash" />
+            </button>
+          </div>
+        </div>
+
+        <div class="row buttons">
+          <button type="button" @click="addActionArgument" :disabled="loading"><i class="fas fa-plus" /> &nbsp; Add Argument</button>
+          <button type="button" @click="clearAction" :disabled="loading"><i class="fas fa-times" /> &nbsp; Clear Form</button>
+          <button type="submit" :disabled="loading"><i class="fas fa-play" /> &nbsp; Run</button>
+        </div>
+
+        <div class="row buttons" v-if="!saveMode">
+          <button type="button" @click="saveMode = true" :disabled="loading || !(action.name && action.name.length && action.name in actions)">
+            <i class="fas fa-save" /> &nbsp; Save Action
           </button>
         </div>
-      </div>
+      </form>
+    </div>
 
-      <div class="row buttons">
-        <button type="button" @click="addActionArgument" :disabled="loading"><i class="fas fa-plus" /> &nbsp; Add Argument</button>
-        <button type="button" @click="clearAction" :disabled="loading"><i class="fas fa-times" /> &nbsp; Clear Form</button>
-        <button type="submit" :disabled="loading"><i class="fas fa-play" /> &nbsp; Run</button>
-      </div>
+    <div v-else>
+      <form ref="runForm" @submit.prevent="runScript">
+        <textarea v-model="script" />
 
-      <div class="row buttons" v-if="!saveMode">
-        <button type="button" @click="saveMode = true" :disabled="loading || !(action.name && action.name.length && action.name in actions)">
-          <i class="fas fa-save" /> &nbsp; Save Action
-        </button>
-      </div>
-    </form>
+        <div class="row buttons">
+          <button type="button" @click="saveMode = true" :disabled="loading || !(action.name && action.name.length && action.name in actions)" v-if="!saveMode">
+            <i class="fas fa-save" /> &nbsp; Save Action
+          </button>
+          <button type="submit" :disabled="loading"><i class="fas fa-play" /> &nbsp; Run</button>
+        </div>
+      </form>
+    </div>
 
-    <form class="save-form" ref="saveForm" @submit.prevent="storeAction" v-if="saveMode">
+    <form class="save-form" ref="scriptForm" @submit.prevent="storeAction" v-if="saveMode">
       <div class="row">
         <input type="text" name="displayName" placeholder="Action display name" />
       </div>
@@ -106,12 +132,18 @@ export default {
     return {
       plugins: {},
       pluginsLoading: false,
+      procedures: {},
       saveMode: false,
       actionResponse: null,
       actionError: null,
       hosts: {},
+      script: `(browser, window, document) => {
+  // Do something
+}`,
+      actionMode: 'request',
       action: {
         name: null,
+        script: null,
         args: [],
       },
     };
@@ -119,12 +151,26 @@ export default {
 
   computed: {
     actions() {
-      return Object.values(this.plugins).reduce((obj, plugin) => {
-        return Object.values(plugin.actions).reduce((obj, action) => {
-          obj[plugin.name + '.' + action.name] = action;
+      let plugins = {};
+      let procedures = {};
+
+      if (this.plugins) {
+        plugins = Object.values(this.plugins).reduce((obj, plugin) => {
+          return Object.values(plugin.actions).reduce((obj, action) => {
+            obj[plugin.name + '.' + action.name] = action;
+            return obj;
+          }, obj);
+        }, {});
+      }
+
+      if (this.procedures) {
+        procedures = Object.entries(this.procedures).reduce((obj, [name, args]) => {
+          obj['procedure.' + name] = args;
           return obj;
-        }, obj);
-      }, {});
+        }, {});
+      }
+
+      return { ...plugins, ...procedures };
     },
 
     filteredActions() {
@@ -183,6 +229,11 @@ export default {
       }
     },
 
+    async runScript() {
+      this.loading = true;
+      console.log(this.script);
+    },
+
     addActionArgument() {
       this.action.args.push({
         name: '',
@@ -203,9 +254,38 @@ export default {
           },
           this.host
         );
+
+        this.procedures = await this.run({ name: 'inspect.get_procedures' }, this.host);
       } finally {
         this.pluginsLoading = false;
       }
+    },
+
+    async storeScript(event) {
+      const saveForm = event.target;
+      const displayName = saveForm.displayName.value.trim();
+      const iconClass = saveForm.iconClass.value.trim();
+      const hosts = [...saveForm.querySelectorAll('input[data-type="host"]:checked')].map(el => el.value);
+
+      if (!displayName.length) {
+        this.notify('Please specify an action name', 'No action name provided');
+        return;
+      }
+
+      if (!hosts.length) {
+        this.notify('Please specify at least one device where the action should run', 'No devices provided');
+        return;
+      }
+
+      const script = {
+        type: this.actionMode,
+        displayName: displayName,
+        iconClass: iconClass,
+        hosts: hosts,
+        script: this.script,
+      };
+
+      console.log(script);
     },
 
     async storeAction(event) {
@@ -225,11 +305,12 @@ export default {
       }
 
       const action = {
+        type: this.actionMode,
         displayName: displayName,
         iconClass: iconClass,
+        hosts: hosts,
         name: this.action.name,
         args: this.getActionArgs(),
-        hosts: hosts,
       };
 
       await this.saveAction(action);
@@ -254,6 +335,23 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.mode-selector {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 1em 0;
+
+  .buttons {
+    display: flex;
+    align-items: center;
+    margin-left: 1em;
+
+    input[type='radio'] {
+      margin-left: 1em;
+    }
+  }
+}
+
 .help {
   margin-bottom: 1em;
 }

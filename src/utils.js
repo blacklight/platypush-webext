@@ -19,7 +19,7 @@ export default {
     async run(action, host) {
       const url = (host.ssl ? 'https' : 'http') + '://' + host.address + ':' + host.port + '/execute';
       const config = {};
-      let args = action.args;
+      let args = action.args || {};
       if (Array.isArray(action.args)) {
         args = action.args
           .filter(arg => arg.value && arg.value.length)
