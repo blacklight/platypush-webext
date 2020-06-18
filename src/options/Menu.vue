@@ -39,12 +39,8 @@ export default {
     hostOptions() {
       return {
         localProc: {
-          displayName: 'Local Actions',
+          displayName: 'Stored Actions',
           iconClass: 'fas fa-puzzle-piece',
-        },
-        remoteProc: {
-          displayName: 'Remote Procedures',
-          iconClass: 'fas fa-database',
         },
         run: {
           displayName: 'Run Action',

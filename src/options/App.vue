@@ -6,7 +6,6 @@
       <NewHost @add="addHost" v-if="selectedTab === 'add'" />
       <Config v-else-if="selectedTab === 'config'" @reload="reload" />
       <LocalCommands :host="selectedHost" v-else-if="selectedHost && selectedHostOption === 'localProc'" />
-      <RemoteCommands v-else-if="selectedHost && selectedHostOption === 'remoteProc'" />
       <Run :host="hosts[selectedHost]" v-else-if="selectedHost && selectedHostOption === 'run'" />
       <EditHost :host="hosts[selectedHost]" @save="editHost" @remove="removeHost" v-else-if="selectedHost" />
       <div class="none" v-else>Select an option from the menu</div>
@@ -20,7 +19,6 @@ import Menu from './Menu';
 import NewHost from './NewHost';
 import EditHost from './EditHost';
 import LocalCommands from './LocalCommands';
-import RemoteCommands from './RemoteCommands';
 import Config from './Config';
 import Run from './Run';
 
@@ -32,7 +30,6 @@ export default {
     NewHost,
     EditHost,
     LocalCommands,
-    RemoteCommands,
     Config,
     Run,
   },
