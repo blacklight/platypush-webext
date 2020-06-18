@@ -65,6 +65,24 @@ export default {
       }
     },
 
+    async runScript(script, host) {
+      this.loading = true;
+
+      try {
+        if (typeof script === 'string') {
+          /* eslint no-eval: "off" */
+          script = eval(this.script);
+        }
+
+        return await script(this, host, browser, window);
+      } catch (e) {
+        this.notify(e.message, 'Script error');
+        throw e;
+      } finally {
+        this.loading = false;
+      }
+    },
+
     async getHosts() {
       this.loading = true;
 
