@@ -71,21 +71,19 @@
     </div>
 
     <div v-else>
-      <form ref="runForm" @submit.prevent="runScript">
-        <textarea v-model="script" />
+      <form ref="runForm" @submit.prevent="runAction">
+        <PrismEditor v-model="script" language="js" />
 
         <div class="row buttons">
-          <button type="button" @click="saveMode = true" :disabled="loading || !(action.name && action.name.length && action.name in actions)" v-if="!saveMode">
-            <i class="fas fa-save" /> &nbsp; Save Action
-          </button>
+          <button type="button" @click="saveMode = true" :disabled="loading || script === scriptTemplate" v-if="!saveMode"><i class="fas fa-save" /> &nbsp; Save Script</button>
           <button type="submit" :disabled="loading"><i class="fas fa-play" /> &nbsp; Run</button>
         </div>
       </form>
     </div>
 
-    <form class="save-form" ref="scriptForm" @submit.prevent="storeAction" v-if="saveMode">
+    <form class="save-form" ref="scriptForm" @submit.prevent="storeScript" v-if="saveMode">
       <div class="row">
-        <input type="text" name="displayName" placeholder="Action display name" />
+        <input type="text" name="displayName" placeholder="Script display name" />
       </div>
 
       <div class="row">
@@ -94,14 +92,14 @@
 
       <div class="row multiple-host-selector">
         <div class="desc">
-          Install action on these devices
+          Install script on these devices
         </div>
 
         <MultipleHostSelector :hosts="hosts" :selected="[host.name]" />
       </div>
 
       <div class="row buttons">
-        <button type="submit" :disabled="loading"><i class="fas fa-save" /> &nbsp; Save Action</button>
+        <button type="submit" :disabled="loading"><i class="fas fa-save" /> &nbsp; Save Script</button>
         <button type="button" @click="saveMode = false" :disabled="loading"><i class="fas fa-times" /> &nbsp; Cancel</button>
       </div>
     </form>
@@ -112,6 +110,10 @@
 </template>
 
 <script>
+import 'prismjs';
+import 'prismjs/themes/prism.css';
+import PrismEditor from 'vue-prism-editor';
+
 import mixins from '../utils';
 import Autocomplete from './Autocomplete';
 import MultipleHostSelector from './MultipleHostSelector';
@@ -121,11 +123,25 @@ export default {
   mixins: [mixins],
   props: {
     host: Object,
+    scriptTemplate: {
+      type: String,
+      default: `async (app, host, browser, window) => {
+  // Run some action on the host
+  const status = await app.run({ name: 'music.mpd.pause' }, host);
+
+  // Send notifications to the browser
+  app.notify(status.state, 'Music status changed');
+
+  // Return values back to the app
+  return status;
+}`,
+    },
   },
 
   components: {
     Autocomplete,
     MultipleHostSelector,
+    PrismEditor,
   },
 
   data() {
@@ -137,13 +153,10 @@ export default {
       actionResponse: null,
       actionError: null,
       hosts: {},
-      script: `(browser, window, document) => {
-  // Do something
-}`,
+      script: this.scriptTemplate,
       actionMode: 'request',
       action: {
         name: null,
-        script: null,
         args: [],
       },
     };
@@ -212,13 +225,17 @@ export default {
       this.loading = true;
 
       try {
-        this.actionResponse = await this.run(
-          {
-            name: this.action.name,
-            args: this.getActionArgs(),
-          },
-          this.host
-        );
+        if (this.actionMode === 'request') {
+          this.actionResponse = await this.run(
+            {
+              name: this.action.name,
+              args: this.getActionArgs(),
+            },
+            this.host
+          );
+        } else {
+          this.actionResponse = await this.runScript(this.script, this.host);
+        }
 
         this.actionError = null;
       } catch (e) {
@@ -227,11 +244,6 @@ export default {
       } finally {
         this.loading = false;
       }
-    },
-
-    async runScript() {
-      this.loading = true;
-      console.log(this.script);
     },
 
     addActionArgument() {
