@@ -1,10 +1,8 @@
 <template>
   <div class="page local-actions">
-    <h2 v-if="host">Actions stored locally for {{ host }}</h2>
-    <h2 v-else>Actions stored locally</h2>
-
     <div class="body">
-      <div class="no-actions" v-if="!actions || !Object.keys(actions).length">No actions available on this device</div>
+      <h2 v-if="Object.keys(actions).length && host">Actions stored for {{ host }}</h2>
+      <h2 v-else-if="Object.keys(actions).length">Actions</h2>
 
       <form class="action" :class="{ selected: selectedAction === name }" v-for="(action, name) in actions" :key="name" @submit.prevent="runAction">
         <div class="head" @click="toggleSelectedAction(name)">
@@ -43,16 +41,54 @@
           </div>
         </div>
       </form>
+
+      <h2 v-if="Object.keys(scripts).length && host">Scripts stored for {{ host }}</h2>
+      <h2 v-else-if="Object.keys(scripts).length">Scripts</h2>
+
+      <form class="action" :class="{ selected: selectedScript === name }" v-for="(script, name) in scripts" :key="name" @submit.prevent="_runScript">
+        <div class="head" @click="toggleSelectedScript(name)">
+          <div class="icon">
+            <i :class="script.iconClass" v-if="script.iconClass" />
+            <i class="fas fa-cog" v-else />
+          </div>
+          <div class="name" v-text="name" />
+          <div class="controls">
+            <button type="button" class="run" :disabled="loading" @click.stop="_runScript" v-if="selectedScript === name">
+              <i class="fas fa-play" />
+            </button>
+            <button type="button" class="remove" :disabled="loading" @click.stop="removeScript" v-if="selectedScript === name">
+              <i class="fas fa-trash" />
+            </button>
+          </div>
+        </div>
+
+        <div class="body" v-if="selectedScript === name">
+          <PrismEditor :code="script.script.toString()" language="js" :readonly="true" />
+
+          <div class="code" v-if="response || error || loading" :class="{ response: response, error: error }">
+            <span v-if="loading">Loading...</span>
+            <span v-text="error" v-else-if="error" />
+            <span v-text="response" v-else-if="response" />
+          </div>
+        </div>
+      </form>
     </div>
+
+    <div class="no-actions" v-if="!(Object.keys(actions).length || Object.keys(scripts).length)">No actions available on this device</div>
   </div>
 </template>
 
 <script>
+import 'prismjs';
+import 'prismjs/themes/prism.css';
+import PrismEditor from 'vue-prism-editor';
+
 import mixins from '../utils';
 
 export default {
   name: 'LocalCommands',
   mixins: [mixins],
+  components: { PrismEditor },
   props: {
     host: String,
   },
@@ -61,7 +97,9 @@ export default {
     return {
       hosts: {},
       actions_: {},
+      scripts: {},
       selectedAction: null,
+      selectedScript: null,
       response: null,
       error: null,
     };
@@ -84,13 +122,17 @@ export default {
     },
 
     actions() {
-      return this.host ? this.actionsByHost[this.host] : this.actions_;
+      return this.host ? this.actionsByHost[this.host] || {} : this.actions_;
     },
   },
 
   methods: {
     async loadActions() {
       this.actions_ = await this.getActions();
+    },
+
+    async loadScripts() {
+      this.scripts = await this.getScripts();
     },
 
     async loadHosts() {
@@ -119,6 +161,29 @@ export default {
       await this.loadActions();
     },
 
+    async removeScript() {
+      if (!this.selectedScript || !(this.selectedScript in this.scripts) || !confirm('Are you sure that you want to remove this script from this device?')) {
+        return;
+      }
+
+      const script = this.scripts[this.selectedScript];
+      const hostIndex = script.hosts.indexOf(this.host);
+      if (hostIndex < 0) {
+        return;
+      }
+
+      console.log('here');
+      script.hosts.splice(hostIndex, 1);
+      if (script.hosts.length === 0) {
+        delete this.scripts[this.selectedScript];
+      } else {
+        this.scripts[this.selectedScript] = script;
+      }
+
+      await this.saveScripts(this.scripts);
+      await this.loadScripts();
+    },
+
     async runAction() {
       if (!(this.selectedAction && this.host && this.selectedAction in this.actions)) {
         return;
@@ -134,16 +199,40 @@ export default {
       }
     },
 
+    async _runScript() {
+      if (!(this.selectedScript && this.host && this.selectedScript in this.scripts)) {
+        return;
+      }
+
+      const script = this.scripts[this.selectedScript];
+      this.error = null;
+
+      try {
+        this.response = await this.runScript(script.script, this.hosts[this.host]);
+      } catch (e) {
+        this.error = e.message;
+      }
+    },
+
     toggleSelectedAction(name) {
       this.response = null;
       this.error = null;
       this.selectedAction = this.selectedAction === name ? null : name;
+      this.selectedScript = null;
+    },
+
+    toggleSelectedScript(name) {
+      this.response = null;
+      this.error = null;
+      this.selectedAction = null;
+      this.selectedScript = this.selectedScript === name ? null : name;
     },
   },
 
   created() {
     this.loadHosts();
     this.loadActions();
+    this.loadScripts();
   },
 };
 </script>
@@ -212,6 +301,16 @@ form {
       }
     }
   }
+}
+
+.no-actions {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3em;
+  letter-spacing: 0.025em;
+  color: rgba(0, 0, 0, 0.8);
 }
 </style>
 

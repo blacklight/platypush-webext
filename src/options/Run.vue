@@ -81,9 +81,9 @@
       </form>
     </div>
 
-    <form class="save-form" ref="scriptForm" @submit.prevent="storeScript" v-if="saveMode">
+    <form class="save-form" ref="scriptForm" @submit.prevent="save" v-if="saveMode">
       <div class="row">
-        <input type="text" name="displayName" placeholder="Script display name" />
+        <input type="text" name="displayName" placeholder="Display name" />
       </div>
 
       <div class="row">
@@ -99,7 +99,7 @@
       </div>
 
       <div class="row buttons">
-        <button type="submit" :disabled="loading"><i class="fas fa-save" /> &nbsp; Save Script</button>
+        <button type="submit" :disabled="loading"><i class="fas fa-save" /> &nbsp; Save {{ actionMode === 'request' ? 'Action' : 'Script' }}</button>
         <button type="button" @click="saveMode = false" :disabled="loading"><i class="fas fa-times" /> &nbsp; Cancel</button>
       </div>
     </form>
@@ -271,6 +271,10 @@ export default {
       } finally {
         this.pluginsLoading = false;
       }
+    },
+
+    async save(event) {
+      return this.actionMode === 'request' ? await this.storeAction(event) : await this.storeScript(event);
     },
 
     async storeScript(event) {
