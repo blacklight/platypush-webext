@@ -297,7 +297,7 @@ export default {
         script: this.script,
       };
 
-      console.log(script);
+      await this.saveScript(script);
     },
 
     async storeAction(event) {

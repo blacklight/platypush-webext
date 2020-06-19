@@ -122,6 +122,28 @@ export default {
       }
     },
 
+    async getScripts(parse = true) {
+      this.loading = true;
+
+      try {
+        const response = await browser.storage.local.get('scripts');
+        if (!response.scripts) {
+          return {};
+        }
+
+        return Object.entries(JSON.parse(response.scripts)).reduce((obj, [name, info]) => {
+          if (parse && typeof info.script === 'string') {
+            info.script = eval(info.script);
+          }
+
+          obj[name] = info;
+          return obj;
+        }, {});
+      } finally {
+        this.loading = false;
+      }
+    },
+
     async saveActions(actions) {
       this.loading = true;
 
@@ -145,14 +167,49 @@ export default {
       this.notify('You can find this action under the Local Actions menu', 'Action saved');
     },
 
+    async saveScripts(scripts) {
+      this.loading = true;
+
+      try {
+        scripts = Object.entries(scripts).reduce((obj, [name, info]) => {
+          if (typeof info.script === 'function') {
+            info.script = info.script.toString();
+          }
+
+          obj[name] = info;
+          return obj;
+        }, {});
+
+        await browser.storage.local.set({ scripts: JSON.stringify(scripts) });
+      } catch (e) {
+        this.notify(e.message, 'Error on script save');
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async saveScript(script) {
+      const scripts = await this.getScripts(false);
+      if (script.displayName in scripts) {
+        if (!confirm('A script with this name already exists. Do you want to overwrite it?')) {
+          return;
+        }
+      }
+
+      scripts[script.displayName] = script;
+      await this.saveScripts(scripts);
+      this.notify('You can find this script under the Local Actions menu', 'Script saved');
+    },
+
     async loadConfig() {
       this.loading = true;
 
       try {
-        const [hosts, actions] = await Promise.all([this.getHosts(), this.getActions()]);
+        const [hosts, actions, scripts] = await Promise.all([this.getHosts(), this.getActions(), this.getScripts(false)]);
         return {
           hosts: hosts,
           actions: actions,
+          scripts: scripts,
         };
       } finally {
         this.loading = false;
@@ -163,9 +220,10 @@ export default {
       this.loading = true;
       const hosts = config.hosts || {};
       const actions = config.actions || {};
+      const scripts = config.scripts || {};
 
       try {
-        await Promise.all([this.saveHosts(hosts), this.saveActions(actions)]);
+        await Promise.all([this.saveHosts(hosts), this.saveActions(actions), this.saveScripts(scripts)]);
       } finally {
         this.loading = false;
       }
