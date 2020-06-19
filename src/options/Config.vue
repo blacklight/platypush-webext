@@ -21,7 +21,8 @@
 
       <form class="content" ref="content" @submit.prevent="save">
         <div class="textarea">
-          <textarea name="text" ref="text" v-model="config" v-text="loading ? 'Loading...' : config" @focus="onFocus" :disabled="loading" />
+          <PrismEditor name="text" v-model="config" :code="loading ? 'Loading...' : config" language="js" :emitEvents="true" />
+          <!-- <textarea name="text" ref="text" v-model="config" v-text="loading ? 'Loading...' : config" @focus="onFocus" :disabled="loading" /> -->
         </div>
 
         <div class="buttons">
@@ -37,9 +38,14 @@
 import axios from 'axios';
 import mixins from '../utils';
 
+import 'prismjs';
+import 'prismjs/themes/prism.css';
+import PrismEditor from 'vue-prism-editor';
+
 export default {
   name: 'Backup',
   mixins: [mixins],
+  components: { PrismEditor },
 
   data() {
     return {
@@ -64,11 +70,11 @@ export default {
       this.savedConfig = this.config;
     },
 
-    async save(event) {
+    async save() {
       this.loading = true;
 
       try {
-        const config = JSON.parse(event.target.text.value);
+        const config = JSON.parse(this.config);
         await this.saveConfig(config);
         await this.reload();
         this.$emit('reload');
