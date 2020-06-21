@@ -1,79 +1,115 @@
 <template>
   <div class="page local-actions">
     <div class="body">
-      <h2 v-if="Object.keys(actions).length && host">Actions stored for {{ host }}</h2>
-      <h2 v-else-if="Object.keys(actions).length">Actions</h2>
+      <div class="actions-container" v-if="Object.keys(actions).length">
+        <h2 v-if="host">Actions stored for {{ host }}</h2>
+        <h2 v-else>Actions</h2>
 
-      <form class="action" :class="{ selected: selectedAction === name }" v-for="(action, name) in actions" :key="name" @submit.prevent="runAction">
-        <div class="head" @click="toggleSelectedAction(name)">
-          <div class="icon">
-            <i :class="action.iconClass" v-if="action.iconClass" />
-            <i class="fas fa-cog" v-else />
-          </div>
-
-          <div class="name" v-text="name" />
-
-          <div class="controls">
-            <button type="button" class="run" :disabled="loading" @click.stop="runAction" v-if="selectedAction === name">
-              <i class="fas fa-play" />
-            </button>
-            <button type="button" class="remove" :disabled="loading" @click.stop="removeAction" v-if="selectedAction === name">
-              <i class="fas fa-trash" />
-            </button>
-          </div>
-        </div>
-
-        <div class="body" v-if="selectedAction === name">
-          <div class="desc">
-            <div class="row">
-              <div class="label">Action</div>
-              <div class="value" v-text="action.name" />
+        <div class="categories">
+          <div class="category" v-for="(actions, category) in actionsByCategory" :key="category">
+            <div class="head" v-if="category.length && Object.keys(actions).length" @click="selectedCategory = selectedCategory === category ? null : category">
+              <i class="fas" :class="selectedCategory === category ? 'fa-chevron-up' : 'fa-chevron-down'" />
+              <span class="name" v-text="category" />
             </div>
 
-            <div class="row" :class="{ hidden: argValue == null || argValue == '' }" v-for="(argValue, argName) in action.args" :key="argName">
-              <div class="label" v-text="argName" />
-              <div class="value" v-text="argValue" />
+            <div class="action-container" v-if="selectedCategory === category">
+              <form class="action" :class="{ selected: selectedAction === name }" v-for="(action, name) in actions" :key="name" @submit.prevent="runAction">
+                <div class="action-head" @click="toggleSelectedAction(name)">
+                  <div class="icon">
+                    <i :class="action.iconClass" v-if="action.iconClass" />
+                    <i class="fas fa-cog" v-else />
+                  </div>
+
+                  <div class="name" v-text="name" />
+
+                  <div class="controls">
+                    <button type="button" class="run" :disabled="loading" @click.stop="runAction" v-if="selectedAction === name">
+                      <i class="fas fa-play" />
+                    </button>
+                    <button type="button" class="remove" :disabled="loading" @click.stop="removeAction" v-if="selectedAction === name">
+                      <i class="fas fa-trash" />
+                    </button>
+                  </div>
+                </div>
+
+                <div class="body" v-if="selectedAction === name">
+                  <div class="desc">
+                    <div class="row">
+                      <div class="label">Action</div>
+                      <div class="value" v-text="action.name" />
+                    </div>
+
+                    <div class="row" v-if="action.categories && Object.keys(action.categories).length">
+                      <div class="label">Categories</div>
+                      <div class="value" v-text="action.categories.join(', ')" />
+                    </div>
+
+                    <div class="row" :class="{ hidden: argValue == null || argValue == '' }" v-for="(argValue, argName) in action.args" :key="argName">
+                      <div class="label" v-text="argName" />
+                      <div class="value" v-text="argValue" />
+                    </div>
+                  </div>
+
+                  <div class="code" v-if="response || error || loading" :class="{ response: response, error: error }">
+                    <span v-if="loading">Loading...</span>
+                    <span v-text="error" v-else-if="error" />
+                    <span v-text="response" v-else-if="response" />
+                  </div>
+                </div>
+              </form>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div class="code" v-if="response || error || loading" :class="{ response: response, error: error }">
-            <span v-if="loading">Loading...</span>
-            <span v-text="error" v-else-if="error" />
-            <span v-text="response" v-else-if="response" />
+      <div class="scripts-container" v-if="Object.keys(scripts).length">
+        <h2 v-if="host">Scripts stored for {{ host }}</h2>
+        <h2 v-else>Scripts</h2>
+
+        <div class="categories">
+          <div class="category" v-for="(actions, category) in actionsByCategory" :key="category">
+            <div class="head" v-if="category.length && Object.keys(actions).length" @click="selectedCategory = selectedCategory === category ? null : category">
+              <i class="fas" :class="selectedCategory === category ? 'fa-chevron-up' : 'fa-chevron-down'" />
+              <span class="name" v-text="category" />
+            </div>
+
+            <div class="action-container" v-if="selectedCategory === category">
+              <form class="action" :class="{ selected: selectedScript === name }" v-for="(script, name) in scripts" :key="name" @submit.prevent="_runScript">
+                <div class="action-head" @click="toggleSelectedScript(name)">
+                  <div class="icon">
+                    <i :class="script.iconClass" v-if="script.iconClass" />
+                    <i class="fas fa-cog" v-else />
+                  </div>
+                  <div class="name" v-text="name" />
+                  <div class="controls">
+                    <button type="button" class="run" :disabled="loading" @click.stop="_runScript" v-if="selectedScript === name">
+                      <i class="fas fa-play" />
+                    </button>
+                    <button type="button" class="remove" :disabled="loading" @click.stop="removeScript" v-if="selectedScript === name">
+                      <i class="fas fa-trash" />
+                    </button>
+                  </div>
+                </div>
+
+                <div class="body" v-if="selectedScript === name">
+                  <div class="row" v-if="action.categories && Object.keys(action.categories).length">
+                    <div class="label">Categories</div>
+                    <div class="value" v-text="action.categories.join(', ')" />
+                  </div>
+
+                  <PrismEditor :code="script.script.toString()" language="js" :readonly="true" />
+
+                  <div class="code" v-if="response || error || loading" :class="{ response: response, error: error }">
+                    <span v-if="loading">Loading...</span>
+                    <span v-text="error" v-else-if="error" />
+                    <span v-text="response" v-else-if="response" />
+                  </div>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
-      </form>
-
-      <h2 v-if="Object.keys(scripts).length && host">Scripts stored for {{ host }}</h2>
-      <h2 v-else-if="Object.keys(scripts).length">Scripts</h2>
-
-      <form class="action" :class="{ selected: selectedScript === name }" v-for="(script, name) in scripts" :key="name" @submit.prevent="_runScript">
-        <div class="head" @click="toggleSelectedScript(name)">
-          <div class="icon">
-            <i :class="script.iconClass" v-if="script.iconClass" />
-            <i class="fas fa-cog" v-else />
-          </div>
-          <div class="name" v-text="name" />
-          <div class="controls">
-            <button type="button" class="run" :disabled="loading" @click.stop="_runScript" v-if="selectedScript === name">
-              <i class="fas fa-play" />
-            </button>
-            <button type="button" class="remove" :disabled="loading" @click.stop="removeScript" v-if="selectedScript === name">
-              <i class="fas fa-trash" />
-            </button>
-          </div>
-        </div>
-
-        <div class="body" v-if="selectedScript === name">
-          <PrismEditor :code="script.script.toString()" language="js" :readonly="true" />
-
-          <div class="code" v-if="response || error || loading" :class="{ response: response, error: error }">
-            <span v-if="loading">Loading...</span>
-            <span v-text="error" v-else-if="error" />
-            <span v-text="response" v-else-if="response" />
-          </div>
-        </div>
-      </form>
+      </div>
     </div>
 
     <div class="no-actions" v-if="!(Object.keys(actions).length || Object.keys(scripts).length)">No actions available on this device</div>
@@ -102,6 +138,7 @@ export default {
       scripts: {},
       selectedAction: null,
       selectedScript: null,
+      selectedCategory: null,
       response: null,
       error: null,
     };
@@ -117,6 +154,32 @@ export default {
           }
 
           obj[host][name] = action;
+        }
+
+        return obj;
+      }, {});
+    },
+
+    actionsByCategory() {
+      if (!(this.host && this.host in this.actionsByHost)) {
+        return {};
+      }
+
+      return Object.entries(this.actionsByHost[this.host]).reduce((obj, [name, action]) => {
+        if (!(action.categories && action.categories.length)) {
+          if (!('' in obj)) {
+            obj[''] = {};
+          }
+
+          obj[''][name] = action;
+        } else {
+          for (const category of action.categories) {
+            if (!(category in obj)) {
+              obj[category] = {};
+            }
+
+            obj[category][name] = action;
+          }
         }
 
         return obj;
@@ -242,13 +305,29 @@ export default {
 form {
   border-bottom: 1px solid rgba(0, 0, 0, 0.2);
 
-  .head {
+  &:not(.selected):nth-child(even) {
+    .action-head {
+      background: rgba(0, 0, 0, 0.03);
+    }
+  }
+
+  &.selected {
+    .action-head {
+      background: rgba(200, 255, 220, 1);
+      border-radius: 1em;
+    }
+  }
+
+  .action-head {
     display: flex;
     align-items: center;
     position: relative;
     padding: 1em;
-    border-radius: 1em;
     cursor: pointer;
+
+    &:hover {
+      background: rgba(200, 255, 220, 0.7) !important;
+    }
 
     .icon {
       font-size: 1.2em;
@@ -266,16 +345,6 @@ form {
       margin-right: 0.5em;
       border: 1px solid rgba(0, 0, 0, 0.2);
       border-radius: 1em;
-    }
-
-    &:hover {
-      background-color: rgba(200, 255, 220, 0.7);
-    }
-  }
-
-  &.selected {
-    .head {
-      background-color: rgba(200, 255, 220, 1);
     }
   }
 
@@ -301,6 +370,16 @@ form {
         }
       }
     }
+  }
+}
+
+.category {
+  border: 1px solid rgba(0, 0, 0, 0.075);
+  margin: 0 -1em;
+  padding: 0 1em;
+
+  .head {
+    padding: 1em 0.25em;
   }
 }
 

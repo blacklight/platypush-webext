@@ -28,13 +28,24 @@
           No actions available for {{ selectedHost }}. Click <a href="/options/options.html" target="_blank">here</a> to configure the device.
         </div>
 
-        <div class="action" v-for="(action, name) in actions" :key="name" :data-action="name" @click="run_($event.target.dataset.action)" v-else>
-          <div class="icon">
-            <i :class="action.iconClass" v-if="action.iconClass" />
-            <i class="fas fa-cog" v-else />
-          </div>
+        <div class="categories" v-else>
+          <div class="category" v-for="(actions, category) in actionsByCategory" :key="category">
+            <div class="head" v-if="category.length" @click="selectedCategory = selectedCategory === category ? null : category">
+              <i class="fas" :class="selectedCategory === category ? 'fa-chevron-up' : 'fa-chevron-down'" />
+              <span class="name" v-text="category" />
+            </div>
 
-          <div class="name" v-text="name" />
+            <div class="actions" v-if="selectedCategory === category || !category.length">
+              <div class="action" v-for="(action, name) in actions" :key="name" :data-action="name" @click="run_($event.target.dataset.action)">
+                <div class="icon">
+                  <i :class="action.iconClass" v-if="action.iconClass" />
+                  <i class="fas fa-cog" v-else />
+                </div>
+
+                <div class="name" v-text="name" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -52,6 +63,7 @@ export default {
       actions_: null,
       scripts_: null,
       selectedHost: null,
+      selectedCategory: null,
     };
   },
 
@@ -70,6 +82,32 @@ export default {
           }
 
           obj[host][name] = action;
+        }
+
+        return obj;
+      }, {});
+    },
+
+    actionsByCategory() {
+      if (!this.selectedHost) {
+        return {};
+      }
+
+      return Object.entries(this.actionsByHost[this.selectedHost]).reduce((obj, [name, action]) => {
+        if (!(action.categories && action.categories.length)) {
+          if (!('' in obj)) {
+            obj[''] = {};
+          }
+
+          obj[''][name] = action;
+        } else {
+          for (const category of action.categories) {
+            if (!(category in obj)) {
+              obj[category] = {};
+            }
+
+            obj[category][name] = action;
+          }
         }
 
         return obj;
@@ -108,7 +146,7 @@ export default {
         return;
       }
 
-      this.notify('', 'Action executed');
+      this.notify('Action ' + action + ' executed on ' + this.host.name);
       return ret;
     },
   },
@@ -132,29 +170,29 @@ export default {
   width: 100%;
   height: 100%;
   position: relative;
-}
 
-.head {
-  width: 100%;
-  height: 2.5em;
-  background: rgba(0, 0, 0, 0.03);
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
-  box-shadow: 0 2px 4px 1px rgba(0, 0, 0, 0.05);
+  .head {
+    width: 100%;
+    height: 2.5em;
+    background: rgba(0, 0, 0, 0.03);
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 4px 1px rgba(0, 0, 0, 0.05);
 
-  .host-selector,
-  .settings {
-    padding: 0.5em;
-  }
+    .host-selector,
+    .settings {
+      padding: 0.5em;
+    }
 
-  .host-selector {
-    width: 80%;
-  }
+    .host-selector {
+      width: 80%;
+    }
 
-  .settings {
-    width: 20%;
-    text-align: right;
+    .settings {
+      width: 20%;
+      text-align: right;
+    }
   }
 }
 
@@ -189,6 +227,7 @@ export default {
 .loading {
   height: 100%;
   margin: auto;
+  padding: 2em;
   font-size: 1.3em;
   text-align: center;
   color: rgba(0, 0, 0, 0.8);
