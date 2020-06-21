@@ -10,7 +10,9 @@
             <i :class="action.iconClass" v-if="action.iconClass" />
             <i class="fas fa-cog" v-else />
           </div>
+
           <div class="name" v-text="name" />
+
           <div class="controls">
             <button type="button" class="run" :disabled="loading" @click.stop="runAction" v-if="selectedAction === name">
               <i class="fas fa-play" />
@@ -172,7 +174,6 @@ export default {
         return;
       }
 
-      console.log('here');
       script.hosts.splice(hostIndex, 1);
       if (script.hosts.length === 0) {
         delete this.scripts[this.selectedScript];
