@@ -69,4 +69,48 @@ form {
   }
 }
 
+.autocomplete__box {
+  border: 0 !important;
+  padding: 0 !important;
+
+  .autocomplete__icon {
+    display: none;
+  }
+
+  .autocomplete__inputs {
+    padding: 0 !important;
+  }
+
+  input[type='text'] {
+    margin: 0 !important;
+  }
+}
+
+.vue-tags-input {
+  width: 100% !important;
+
+  .ti-input {
+    border-radius: 5em !important;
+  }
+
+  input[type='text'] {
+    border: 0 !important;
+  }
+}
+
+.category {
+  .head {
+    font-weight: bold;
+    cursor: pointer;
+
+    i {
+      margin-left: 0.5em;
+    }
+
+    .name {
+      margin-left: 1.5em;
+    }
+  }
+}
+
 // vim:sw=2:ts=2:et:

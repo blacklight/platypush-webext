@@ -22,7 +22,7 @@
       <form ref="runForm" @submit.prevent="runAction">
         <div class="row action-head">
           <div class="action-name">
-            <Autocomplete :items="Object.keys(actions)" :value="action.name" :disabled="loading" placeholder="Action" @change="onActionChange" />
+            <Autocomplete :source="actionsAutocomplete" :disableInput="loading" :name="action.name || ''" placeholder="Action" @input="onActionChange" />
           </div>
           <div class="action-doc" v-text="actionTemplate.doc" v-if="actionTemplate.doc" />
         </div>
@@ -90,6 +90,17 @@
         <input type="text" name="iconClass" placeholder="FontAwesome icon class (e.g. 'fas fa-play')" />
       </div>
 
+      <div class="row">
+        <vue-tags-input
+          v-model="selectedCategory"
+          :autocomplete-items="categoriesAutocomplete"
+          :disabled="loading"
+          :separators="[',', ';']"
+          @tags-changed="tags => (selectedCategories = tags)"
+          placeholder="Categories"
+        />
+      </div>
+
       <div class="row multiple-host-selector">
         <div class="desc">
           Install script on these devices
@@ -115,7 +126,8 @@ import 'prismjs/themes/prism.css';
 import PrismEditor from 'vue-prism-editor';
 
 import mixins from '../utils';
-import Autocomplete from './Autocomplete';
+import Autocomplete from 'vuejs-auto-complete';
+import VueTagsInput from '@johmun/vue-tags-input';
 import MultipleHostSelector from './MultipleHostSelector';
 
 export default {
@@ -140,6 +152,7 @@ export default {
 
   components: {
     Autocomplete,
+    VueTagsInput,
     MultipleHostSelector,
     PrismEditor,
   },
@@ -154,6 +167,9 @@ export default {
       actionError: null,
       hosts: {},
       script: this.scriptTemplate,
+      storedActions: {},
+      selectedCategory: '',
+      selectedCategories: [],
       actionMode: 'request',
       action: {
         name: null,
@@ -186,15 +202,13 @@ export default {
       return { ...plugins, ...procedures };
     },
 
-    filteredActions() {
-      if (!(this.action.name && this.action.name.length)) return {};
-
-      return Object.entries(this.actions)
-        .filter(([name, action]) => name.startsWith(this.action.name))
-        .reduce((obj, [name, action]) => {
-          obj[name] = action;
-          return obj;
-        }, {});
+    actionsAutocomplete() {
+      return Object.keys(this.actions).map(action => {
+        return {
+          id: action,
+          name: action,
+        };
+      });
     },
 
     actionTemplate() {
@@ -203,6 +217,26 @@ export default {
       }
 
       return this.actions[this.action.name];
+    },
+
+    categories() {
+      return Object.keys(
+        Object.values(this.storedActions).reduce((obj, action) => {
+          for (const category of action.categories || []) {
+            obj[category] = true;
+          }
+
+          return obj;
+        }, {})
+      );
+    },
+
+    categoriesAutocomplete() {
+      return this.categories.map(cat => {
+        return {
+          text: cat,
+        };
+      });
     },
   },
 
@@ -273,6 +307,10 @@ export default {
       }
     },
 
+    async loadActions() {
+      this.storedActions = await this.getActions();
+    },
+
     async save(event) {
       return this.actionMode === 'request' ? await this.storeAction(event) : await this.storeScript(event);
     },
@@ -299,6 +337,7 @@ export default {
         iconClass: iconClass,
         hosts: hosts,
         script: this.script,
+        categories: this.selectedCategories.map(obj => obj.text),
       };
 
       await this.saveScript(script);
@@ -327,6 +366,7 @@ export default {
         hosts: hosts,
         name: this.action.name,
         args: this.getActionArgs(),
+        categories: this.selectedCategories.map(obj => obj.text),
       };
 
       await this.saveAction(action);
@@ -340,12 +380,17 @@ export default {
       this.action.name = action;
       this.action.args = [];
     },
+
+    onCategoryInput(event) {
+      console.log(event);
+    },
   },
 
   created() {
     this.clearAction();
     this.loadHosts();
     this.loadPlugins();
+    this.loadActions();
   },
 };
 </script>
