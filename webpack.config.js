@@ -12,6 +12,7 @@ const config = {
   entry: {
     background: './background.js',
     utils: './utils.js',
+    content: './content.js',
     'popup/popup': './popup/popup.js',
     'options/options': './options/options.js',
   },

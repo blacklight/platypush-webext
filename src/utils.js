@@ -16,10 +16,45 @@ export default {
       });
     },
 
+    async getCurrentTab() {
+      const tabs = await browser.tabs.query({
+        currentWindow: true,
+        active: true,
+      });
+
+      if (!tabs.length) {
+        this.notify('', 'No active tab');
+        return;
+      }
+
+      return tabs[0];
+    },
+
+    async getURL() {
+      const tab = await this.getCurrentTab();
+      return await browser.tabs.sendMessage(tab.id, { type: 'getURL' });
+    },
+
+    async getBody() {
+      const tab = await this.getCurrentTab();
+      return await browser.tabs.sendMessage(tab.id, { type: 'getBody' });
+    },
+
+    async setBody(html) {
+      const tab = await this.getCurrentTab();
+      await browser.tabs.sendMessage(tab.id, { type: 'setBody', html: html });
+    },
+
     async run(action, host) {
       const url = (host.ssl ? 'https' : 'http') + '://' + host.address + ':' + host.port + '/execute';
       const config = {};
       let args = action.args || {};
+      let currentURL = null;
+
+      try {
+        currentURL = await this.getURL();
+      } catch (e) {}
+
       if (Array.isArray(action.args)) {
         args = action.args
           .filter(arg => arg.value && arg.value.length)
@@ -32,7 +67,11 @@ export default {
       Object.keys(args).forEach(name => {
         if (args[name] === '$URL$') {
           // URL wildcard
-          args[name] = window.location.href;
+          if (!currentURL) {
+            console.warn('Unable to get the current URL');
+          } else {
+            args[name] = currentURL;
+          }
         }
       });
 

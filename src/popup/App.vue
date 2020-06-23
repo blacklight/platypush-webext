@@ -36,7 +36,7 @@
             </div>
 
             <div class="actions" v-if="selectedCategory === category || !category.length">
-              <div class="action" v-for="(action, name) in actions" :key="name" :data-action="name" @click="run_($event.target.dataset.action)">
+              <div class="action" v-for="(action, name) in actions" :key="name" @click="run_(name)">
                 <div class="icon">
                   <i :class="action.iconClass" v-if="action.iconClass" />
                   <i class="fas fa-cog" v-else />
