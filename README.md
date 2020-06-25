@@ -26,5 +26,5 @@ npm run build
 Generate the extension .zip file:
 
 ```bash
-./create_zip.sh
+npm run build-zip
 ```
