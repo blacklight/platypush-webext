@@ -29,7 +29,7 @@
         </div>
 
         <div class="categories" v-else>
-          <div class="category" v-for="(actions, category) in actionsByCategory" :key="category">
+          <div class="category" :class="{ selected: selectedCategory === category }" v-for="(actions, category) in actionsByCategory" :key="category">
             <div class="head" v-if="category.length" @click="selectedCategory = selectedCategory === category ? null : category">
               <i class="fas" :class="selectedCategory === category ? 'fa-chevron-up' : 'fa-chevron-down'" />
               <span class="name" v-text="category" />
@@ -164,6 +164,14 @@ export default {
   width: 30em;
   max-height: 40em;
   display: flex;
+}
+
+.category {
+  &.selected {
+    box-shadow: 0 0 4px 2px rgba(0, 0, 0, 0.25);
+    margin: 0 -0.65em;
+    border-radius: 2em;
+  }
 }
 
 .main {
