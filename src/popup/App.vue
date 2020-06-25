@@ -169,7 +169,6 @@ export default {
 .category {
   &.selected {
     box-shadow: 0 0 4px 2px rgba(0, 0, 0, 0.25);
-    margin: 0 -0.65em;
     border-radius: 2em;
   }
 }
