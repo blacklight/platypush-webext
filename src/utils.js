@@ -302,6 +302,10 @@ export default {
       return form.name.value.length && form.address.value.length && this.isPortValid(form.port.value) && this.isPortValid(form.websocketPort.value);
     },
   },
+
+  created() {
+    this.$axios = axios;
+  },
 };
 
 // vim:sw=2:ts=2:et:

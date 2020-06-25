@@ -162,7 +162,7 @@ export default {
 <style lang="scss" scoped>
 .container {
   width: 30em;
-  max-height: 20em;
+  max-height: 40em;
   display: flex;
 }
 
@@ -170,6 +170,8 @@ export default {
   width: 100%;
   height: 100%;
   position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
 
   .head {
     width: 100%;
