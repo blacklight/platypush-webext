@@ -6,12 +6,12 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse(window.location.href);
       break;
 
-    case 'getBody':
-      sendResponse(document.body.innerHTML);
+    case 'getDOM':
+      sendResponse(document.getElementsByTagName('html')[0].outerHTML);
       break;
 
-    case 'setBody':
-      document.body.innerHTML = message.html;
+    case 'setDOM':
+      document.getElementsByTagName('html')[0].innerHTML = message.html;
       break;
   }
 });

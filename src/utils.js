@@ -35,14 +35,14 @@ export default {
       return await browser.tabs.sendMessage(tab.id, { type: 'getURL' });
     },
 
-    async getBody() {
+    async getDOM() {
       const tab = await this.getCurrentTab();
-      return await browser.tabs.sendMessage(tab.id, { type: 'getBody' });
+      return await browser.tabs.sendMessage(tab.id, { type: 'getDOM' });
     },
 
-    async setBody(html) {
+    async setDOM(html) {
       const tab = await this.getCurrentTab();
-      await browser.tabs.sendMessage(tab.id, { type: 'setBody', html: html });
+      await browser.tabs.sendMessage(tab.id, { type: 'setDOM', html: html });
     },
 
     async run(action, host) {
