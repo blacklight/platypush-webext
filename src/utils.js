@@ -1,4 +1,5 @@
 import axios from 'axios';
+import Mercury from '@postlight/mercury-parser';
 
 export default {
   data() {
@@ -305,6 +306,7 @@ export default {
 
   created() {
     this.$axios = axios;
+    this.$mercury = Mercury;
   },
 };
 

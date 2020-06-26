@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@johmun/vue-tags-input": "^2.1.0",
+    "@postlight/mercury-parser": "^2.2.0",
     "axios": "^0.19.0",
     "prismjs": "^1.20.0",
     "vue": "^2.6.10",
