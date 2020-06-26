@@ -27,18 +27,18 @@
           <div class="action-doc" v-text="actionTemplate.doc" v-if="actionTemplate.doc" />
         </div>
 
-        <div class="row" v-for="(arg, name) in actionTemplate.args" :key="name">
+        <div class="row" v-for="(arg, name) in action.defaultArgs" :key="name">
           <div class="label">
             <input type="text" :name="'arg_' + name" :value="name" autocomplete="off" disabled />
           </div>
           <div class="value">
             <input
               type="text"
-              :name="name"
-              :value="arg.default"
               data-type="arg"
-              :placeholder="arg.doc && arg.doc.length ? arg.doc : 'Value'"
               autocomplete="off"
+              v-model="arg.value"
+              :name="name"
+              :placeholder="arg.doc && arg.doc.length ? arg.doc : 'Value'"
               :disabled="loading"
             />
           </div>
@@ -50,7 +50,7 @@
           </div>
           <div class="value">
             <input type="text" :name="arg.name" v-model="arg.value" data-type="arg" placeholder="Value" autocomplete="off" :disabled="loading" />
-            <button type="button" @click="action.args.splice(i, 1)" :disabled="loading">
+            <button type="button" @click="removeActionArgument(i)" :disabled="loading">
               <i class="fas fa-trash" />
             </button>
           </div>
@@ -63,7 +63,7 @@
         </div>
 
         <div class="row buttons" v-if="!saveMode">
-          <button type="button" @click="saveMode = true" :disabled="loading || !(action.name && action.name.length && action.name in actions)">
+          <button type="button" @click="toggleSaveMode" :disabled="loading || !(action.name && action.name.length && action.name in actions)">
             <i class="fas fa-save" /> &nbsp; Save Action
           </button>
         </div>
@@ -75,7 +75,7 @@
         <PrismEditor v-model="script" language="js" />
 
         <div class="row buttons">
-          <button type="button" @click="saveMode = true" :disabled="loading || script === scriptTemplate" v-if="!saveMode"><i class="fas fa-save" /> &nbsp; Save Script</button>
+          <button type="button" @click="toggleSaveMode" :disabled="loading || script === scriptTemplate" v-if="!saveMode"><i class="fas fa-save" /> &nbsp; Save Script</button>
           <button type="submit" :disabled="loading"><i class="fas fa-play" /> &nbsp; Run</button>
         </div>
       </form>
@@ -111,7 +111,7 @@
 
       <div class="row buttons">
         <button type="submit" :disabled="loading"><i class="fas fa-save" /> &nbsp; Save {{ actionMode === 'request' ? 'Action' : 'Script' }}</button>
-        <button type="button" @click="saveMode = false" :disabled="loading"><i class="fas fa-times" /> &nbsp; Cancel</button>
+        <button type="button" @click="toggleSaveMode" :disabled="loading"><i class="fas fa-times" /> &nbsp; Cancel</button>
       </div>
     </form>
 
@@ -174,6 +174,7 @@ export default {
       action: {
         name: null,
         args: [],
+        defaultArgs: {},
       },
     };
   },
@@ -244,6 +245,7 @@ export default {
     clearAction() {
       this.action.name = null;
       this.action.args = [];
+      this.action.defaultArgs = {};
       this.actionResponse = null;
       this.actionError = null;
     },
@@ -285,6 +287,14 @@ export default {
         name: '',
         value: '',
       });
+    },
+
+    removeActionArgument(i) {
+      this.action.args.splice(i, 1);
+    },
+
+    toggleSaveMode() {
+      this.saveMode = !this.saveMode;
     },
 
     async loadPlugins() {
@@ -377,12 +387,21 @@ export default {
     },
 
     onActionChange(action) {
+      if (action === this.action.name) {
+        return;
+      }
+
       this.action.name = action;
       this.action.args = [];
-    },
 
-    onCategoryInput(event) {
-      console.log(event);
+      if (action in this.actions) {
+        this.action.defaultArgs = Object.entries(this.actions[action].args).reduce((obj, [name, arg]) => {
+          obj[name] = { ...arg, value: arg.default };
+          return obj;
+        }, {});
+      } else {
+        this.action.defaultArgs = {};
+      }
     },
   },
 
