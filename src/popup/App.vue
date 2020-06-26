@@ -170,6 +170,7 @@ export default {
   &.selected {
     box-shadow: 0 0 4px 2px rgba(0, 0, 0, 0.25);
     border-radius: 2em;
+    margin: 0 0.2em;
   }
 }
 
