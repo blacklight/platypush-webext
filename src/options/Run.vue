@@ -81,13 +81,17 @@
       </form>
     </div>
 
-    <form class="save-form" ref="scriptForm" @submit.prevent="save" v-if="saveMode">
+    <form class="save-form" @submit.prevent="save" v-if="saveMode">
       <div class="row">
-        <input type="text" name="displayName" placeholder="Display name" />
+        <input type="text" name="displayName" v-model="saveParams.name" placeholder="Display name" />
       </div>
 
       <div class="row">
-        <input type="text" name="iconClass" placeholder="FontAwesome icon class (e.g. 'fas fa-play')" />
+        <input type="text" name="iconClass" v-model="saveParams.iconClass" placeholder="FontAwesome icon class (e.g. 'fas fa-play')" />
+      </div>
+
+      <div class="row">
+        <input type="text" ref="color" name="color" v-model="saveParams.color" placeholder="HTML/CSS color" />
       </div>
 
       <div class="row">
@@ -99,6 +103,10 @@
           @tags-changed="tags => (selectedCategories = tags)"
           placeholder="Categories"
         />
+      </div>
+
+      <div class="row icon-preview" v-if="saveParams.iconClass && saveParams.iconClass.length">
+        <i :class="saveParams.iconClass" :style="{ color: saveParams.color && saveParams.color.length ? saveParams.color : 'initial' }" />
       </div>
 
       <div class="row multiple-host-selector">
@@ -175,6 +183,12 @@ export default {
         name: null,
         args: [],
         defaultArgs: {},
+      },
+
+      saveParams: {
+        name: null,
+        iconClass: null,
+        color: null,
       },
     };
   },
@@ -295,6 +309,14 @@ export default {
 
     toggleSaveMode() {
       this.saveMode = !this.saveMode;
+
+      if (!this.saveMode) {
+        this.saveParams = {
+          name: null,
+          iconClass: null,
+          color: null,
+        };
+      }
     },
 
     async loadPlugins() {
@@ -329,6 +351,7 @@ export default {
       const saveForm = event.target;
       const displayName = saveForm.displayName.value.trim();
       const iconClass = saveForm.iconClass.value.trim();
+      const color = saveForm.color.value.trim();
       const hosts = [...saveForm.querySelectorAll('input[data-type="host"]:checked')].map(el => el.value);
 
       if (!displayName.length) {
@@ -345,6 +368,7 @@ export default {
         type: this.actionMode,
         displayName: displayName,
         iconClass: iconClass,
+        color: color.length ? color : null,
         hosts: hosts,
         script: this.script,
         categories: this.selectedCategories.map(obj => obj.text),
@@ -357,6 +381,7 @@ export default {
       const saveForm = event.target;
       const displayName = saveForm.displayName.value.trim();
       const iconClass = saveForm.iconClass.value.trim();
+      const color = saveForm.color.value.trim();
       const hosts = [...saveForm.querySelectorAll('input[data-type="host"]:checked')].map(el => el.value);
 
       if (!displayName.length) {
@@ -373,6 +398,7 @@ export default {
         type: this.actionMode,
         displayName: displayName,
         iconClass: iconClass,
+        color: color.length ? color : null,
         hosts: hosts,
         name: this.action.name,
         args: this.getActionArgs(),
@@ -523,6 +549,11 @@ form {
   .desc {
     margin-bottom: 0.75em;
   }
+}
+
+.icon-preview {
+  font-size: 2em;
+  margin-left: 0.2em;
 }
 </style>
 

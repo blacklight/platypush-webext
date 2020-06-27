@@ -23,7 +23,7 @@
             >
               <div class="action-head" @click="toggleSelectedAction(name)">
                 <div class="icon">
-                  <i :class="action.iconClass" v-if="action.iconClass" />
+                  <i :class="action.iconClass" :style="{ color: action.color && action.color.length ? action.color : 'initial' }" v-if="action.iconClass" />
                   <i class="fas fa-cog" v-else />
                 </div>
 

@@ -38,7 +38,7 @@
             <div class="actions" v-if="selectedCategory === category || !category.length">
               <div class="action" v-for="(action, name) in actions" :key="name" @click="run_(name)">
                 <div class="icon">
-                  <i :class="action.iconClass" v-if="action.iconClass" />
+                  <i :class="action.iconClass" :style="{ color: action.color && action.color.length ? action.color : 'initial' }" v-if="action.iconClass" />
                   <i class="fas fa-cog" v-else />
                 </div>
 
@@ -160,10 +160,14 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+body {
+  overflow: hidden;
+}
+
 .container {
   width: 30em;
-  max-height: 40em;
   display: flex;
+  overflow: hidden;
 }
 
 .category {
@@ -178,8 +182,7 @@ export default {
   width: 100%;
   height: 100%;
   position: relative;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
 
   .head {
     width: 100%;
@@ -208,7 +211,9 @@ export default {
 
 .body {
   height: calc(100% - 2.5em);
-  overflow: auto;
+  max-height: 35em;
+  overflow-y: auto;
+  overflow-x: hidden;
 
   .action {
     display: flex;
