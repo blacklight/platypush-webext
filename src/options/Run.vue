@@ -22,7 +22,15 @@
       <form ref="runForm" @submit.prevent="runAction">
         <div class="row action-head">
           <div class="action-name">
-            <Autocomplete :source="actionsAutocomplete" :disableInput="loading" :name="action.name || ''" placeholder="Action" @input="onActionChange" />
+            <Autocomplete
+              placeholder="Action"
+              :source="actionsAutocomplete"
+              :disableInput="loading"
+              :name="action.name || ''"
+              :initialValue="selectedAction ? selectedAction.name : null"
+              :initialDisplay="selectedAction ? selectedAction.name : null"
+              @input="onActionChange"
+            />
           </div>
           <div class="action-doc" v-text="actionTemplate.doc" v-if="actionTemplate.doc" />
         </div>
@@ -100,6 +108,7 @@
           :autocomplete-items="categoriesAutocomplete"
           :disabled="loading"
           :separators="[',', ';']"
+          :tags="selectedCategories.map(cat => (typeof cat === 'object' ? cat : { text: cat }))"
           @tags-changed="tags => (selectedCategories = tags)"
           placeholder="Categories"
         />
@@ -114,7 +123,7 @@
           Install script on these devices
         </div>
 
-        <MultipleHostSelector :hosts="hosts" :selected="[host.name]" />
+        <MultipleHostSelector :hosts="hosts" :selected="selectedHosts && selectedHosts.length ? selectedHosts : [host.name]" />
       </div>
 
       <div class="row buttons">
@@ -143,6 +152,8 @@ export default {
   mixins: [mixins],
   props: {
     host: Object,
+    selectedAction: Object,
+    selectedScript: Object,
     scriptTemplate: {
       type: String,
       default: `async (app, host, browser, tab, target, ...args) => {
@@ -178,6 +189,7 @@ export default {
       storedActions: {},
       selectedCategory: '',
       selectedCategories: [],
+      selectedHosts: null,
       actionMode: 'request',
       action: {
         name: null,
@@ -429,6 +441,32 @@ export default {
         this.action.defaultArgs = {};
       }
     },
+
+    initAction() {
+      const action = this.selectedAction || this.selectedScript;
+      if (!action) {
+        return;
+      }
+
+      this.saveMode = true;
+      this.saveParams.name = action.displayName;
+      this.saveParams.color = action.color;
+      this.saveParams.iconClass = action.iconClass;
+      this.selectedCategories = action.categories;
+      this.selectedHosts = action.hosts;
+
+      if (this.selectedAction) {
+        this.actionMode = 'request';
+        this.action.name = action.name;
+        this.action.defaultArgs = Object.entries(action.args).reduce((obj, [name, value]) => {
+          obj[name] = { value: value };
+          return obj;
+        }, {});
+      } else {
+        this.actionMode = 'script';
+        this.script = action.script.toString();
+      }
+    },
   },
 
   created() {
@@ -436,6 +474,7 @@ export default {
     this.loadHosts();
     this.loadPlugins();
     this.loadActions();
+    this.initAction();
   },
 };
 </script>

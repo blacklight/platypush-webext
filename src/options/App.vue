@@ -5,8 +5,8 @@
     <div class="body">
       <NewHost @add="addHost" v-if="selectedTab === 'add'" />
       <Config v-else-if="selectedTab === 'config'" @reload="reload" />
-      <LocalCommands :host="selectedHost" v-else-if="selectedHost && selectedHostOption === 'localProc'" />
-      <Run :host="hosts[selectedHost]" v-else-if="selectedHost && selectedHostOption === 'run'" />
+      <LocalCommands :host="selectedHost" v-else-if="selectedHost && selectedHostOption === 'localProc'" :bus="bus" />
+      <Run :host="hosts[selectedHost]" v-else-if="selectedHost && selectedHostOption === 'run'" :selectedAction="selectedAction" :selectedScript="selectedScript" />
       <EditHost :host="hosts[selectedHost]" @save="editHost" @remove="removeHost" v-else-if="selectedHost" />
       <div class="none" v-else>Select an option from the menu</div>
     </div>
@@ -14,6 +14,7 @@
 </template>
 
 <script>
+import Vue from 'vue';
 import mixins from '../utils';
 import Menu from './Menu';
 import NewHost from './NewHost';
@@ -36,18 +37,23 @@ export default {
 
   data() {
     return {
+      bus: new Vue({}),
       hosts: {},
       selectedTab: null,
       selectedHost: null,
       selectedHostOption: null,
+      selectedAction: null,
+      selectedScript: null,
     };
   },
 
   methods: {
-    select(tab, host, hostOption) {
+    select(tab, host, hostOption, action, script) {
       this.selectedTab = tab;
       this.selectedHost = host;
       this.selectedHostOption = hostOption;
+      this.selectedAction = action;
+      this.selectedScript = script;
     },
 
     async reload() {
@@ -119,10 +125,23 @@ export default {
         this.loading = false;
       }
     },
+
+    initListeners() {
+      const self = this;
+
+      this.bus.$on('edit-action', action => {
+        self.select('host', this.selectedHost, 'run', action, null);
+      });
+
+      this.bus.$on('edit-script', script => {
+        self.select('host', this.selectedHost, 'run', null, script);
+      });
+    },
   },
 
   created() {
     this.reload();
+    this.initListeners();
   },
 };
 </script>

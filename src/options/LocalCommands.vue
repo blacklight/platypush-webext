@@ -33,6 +33,9 @@
                   <button type="button" class="run" :disabled="loading" @click.stop="action.type === 'request' ? runAction() : _runScript()" v-if="selectedAction === name">
                     <i class="fas fa-play" />
                   </button>
+                  <button type="button" class="edit" :disabled="loading" @click.stop="action.type === 'request' ? editAction() : editScript()" v-if="selectedAction === name">
+                    <i class="fas fa-pen" />
+                  </button>
                   <button type="button" class="remove" :disabled="loading" @click.stop="action.type === 'request' ? removeAction() : removeScript()" v-if="selectedAction === name">
                     <i class="fas fa-trash" />
                   </button>
@@ -88,6 +91,7 @@ export default {
   components: { PrismEditor },
   props: {
     host: String,
+    bus: Object,
   },
 
   data() {
@@ -160,6 +164,14 @@ export default {
 
     async loadHosts() {
       this.hosts = await this.getHosts();
+    },
+
+    editAction() {
+      this.bus.$emit('edit-action', this.actions_[this.selectedAction]);
+    },
+
+    editScript() {
+      this.bus.$emit('edit-script', this.scripts[this.selectedAction]);
     },
 
     async removeAction() {
@@ -285,6 +297,7 @@ form {
     }
 
     .icon {
+      width: 1em;
       font-size: 1.2em;
       margin-right: 1.5em;
     }

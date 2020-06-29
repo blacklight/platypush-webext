@@ -1,5 +1,6 @@
 import axios from 'axios';
 import Mercury from '@postlight/mercury-parser';
+import Vue from 'vue';
 
 export default {
   data() {
@@ -321,5 +322,7 @@ export default {
     this.$mercury = Mercury;
   },
 };
+
+export const bus = new Vue();
 
 // vim:sw=2:ts=2:et:

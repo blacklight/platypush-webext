@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <div class="no-hosts" v-if="!hosts">
+    <div class="no-hosts" v-if="!(hosts && Object.keys(hosts).length)">
       No devices found. Click
       <a href="/options/options.html" target="_blank">here</a> to configure the extension.
     </div>
@@ -13,7 +13,7 @@
             <option v-for="(host, name) in hosts" :selected="selectedHost === name" :key="name" :value="name">{{ name }}</option>
           </select>
 
-          <span class="host" v-text="Object.entries(hosts)[0][0]" v-else />
+          <span class="host" v-text="Object.keys(hosts)[0]" v-else />
         </div>
 
         <div class="settings">
@@ -74,6 +74,10 @@ export default {
     },
 
     actionsByHost() {
+      if (!this.actions_ || !this.scripts_) {
+        return {};
+      }
+
       return Object.entries({ ...(this.actions_ || {}), ...(this.scripts_ || {}) }).reduce((obj, [name, action]) => {
         const hosts = action.hosts || [];
         for (const host of hosts) {
@@ -122,8 +126,8 @@ export default {
   methods: {
     async loadHosts() {
       this.hosts = await this.getHosts();
-      if (!this.selectedHost) {
-        this.selectedHost = Object.entries(this.hosts)[0][0];
+      if (!this.selectedHost && this.hosts && Object.keys(this.hosts).length) {
+        this.selectedHost = Object.keys(this.hosts)[0];
       }
     },
 
