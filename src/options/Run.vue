@@ -145,7 +145,7 @@ export default {
     host: Object,
     scriptTemplate: {
       type: String,
-      default: `async (app, host, browser, window) => {
+      default: `async (app, host, browser, tab, target, ...args) => {
   // Run some action on the host
   const status = await app.run({ name: 'music.mpd.pause' }, host);
 

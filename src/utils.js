@@ -46,15 +46,27 @@ export default {
       await browser.tabs.sendMessage(tab.id, { type: 'setDOM', html: html });
     },
 
-    async run(action, host) {
-      const url = (host.ssl ? 'https' : 'http') + '://' + host.address + ':' + host.port + '/execute';
+    async getTargetElement() {
+      const tab = await this.getCurrentTab();
+      const target = await browser.tabs.sendMessage(tab.id, { type: 'getTargetElement' });
+      if (!target) {
+        return;
+      }
+
+      return new DOMParser().parseFromString(target, 'text/html').documentElement.getElementsByTagName('body')[0].firstChild;
+    },
+
+    async run(action, host, url) {
+      const execURL = (host.ssl ? 'https' : 'http') + '://' + host.address + ':' + host.port + '/execute';
       const config = {};
       let args = action.args || {};
-      let currentURL = null;
+      let currentURL = url;
 
-      try {
-        currentURL = await this.getURL();
-      } catch (e) {}
+      if (!url) {
+        try {
+          currentURL = await this.getURL();
+        } catch (e) {}
+      }
 
       if (Array.isArray(action.args)) {
         args = action.args
@@ -84,7 +96,7 @@ export default {
 
       try {
         const msg = await axios.post(
-          url,
+          execURL,
           {
             type: 'request',
             action: action.name,
@@ -105,7 +117,7 @@ export default {
       }
     },
 
-    async runScript(script, host) {
+    async runScript(script, host, tab, target, ...args) {
       this.loading = true;
 
       try {
@@ -114,7 +126,7 @@ export default {
           script = eval(this.script);
         }
 
-        return await script(this, host, browser, window);
+        return await script(this, host, browser, tab, target, ...args);
       } catch (e) {
         this.notify(e.message, 'Script error');
         throw e;

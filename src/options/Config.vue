@@ -1,10 +1,9 @@
 <template>
   <div class="page backup">
-    <h2>Extension Configuration</h2>
-
-    <div class="container">
+    <div class="head">
+      <h2>Extension Configuration</h2>
       <form class="loader" ref="loader" @submit.prevent="loadURL">
-        <div class="head">
+        <div class="loader-head">
           Load configuration
           <input type="radio" id="_file" value="file" v-model="extConfigType" />
           <label for="_file">From file</label>
@@ -12,25 +11,25 @@
           <label for="_url">From URL</label>
         </div>
 
-        <div class="body">
+        <div class="loader-body">
           <input type="file" name="file" placeholder="Configuration file" accept="application/json, text/x-json, text/plain" @change="uploadFile" v-if="extConfigType === 'file'" />
           <input type="text" name="url" placeholder="Configuration URL" v-model="extURL" v-if="extConfigType === 'url'" />
           <input type="submit" value="Load" v-if="extConfigType === 'url'" />
         </div>
       </form>
-
-      <form class="content" ref="content" @submit.prevent="save">
-        <div class="textarea">
-          <PrismEditor name="text" v-model="config" :code="loading ? 'Loading...' : config" language="js" :emitEvents="true" />
-          <!-- <textarea name="text" ref="text" v-model="config" v-text="loading ? 'Loading...' : config" @focus="onFocus" :disabled="loading" /> -->
-        </div>
-
-        <div class="buttons">
-          <button type="button" :disabled="savedConfig === config" @click="reload"><i class="fas fa-undo" /> &nbsp; Undo</button>
-          <button type="submit" :disabled="savedConfig === config"><i class="fas fa-save" /> &nbsp; Save</button>
-        </div>
-      </form>
     </div>
+
+    <form class="content" ref="content" @submit.prevent="save">
+      <div class="textarea">
+        <PrismEditor name="text" v-model="config" :code="loading ? 'Loading...' : config" language="js" :emitEvents="true" />
+        <!-- <textarea name="text" ref="text" v-model="config" v-text="loading ? 'Loading...' : config" @focus="onFocus" :disabled="loading" /> -->
+      </div>
+
+      <div class="buttons">
+        <button type="button" :disabled="savedConfig === config" @click="reload"><i class="fas fa-undo" /> &nbsp; Undo</button>
+        <button type="submit" :disabled="savedConfig === config"><i class="fas fa-save" /> &nbsp; Save</button>
+      </div>
+    </form>
   </div>
 </template>
 
@@ -131,27 +130,56 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-textarea,
-.loader {
-  width: 60%;
-  min-width: 30em;
-  max-width: 50em;
-}
+$head-height: 10em;
+$buttons-height: 5em;
 
-textarea {
-  height: 50em;
-  max-height: 80vh;
-  overflow: auto;
+.page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0 !important;
+
+  .head,
+  .content {
+    padding: 0 1em;
+  }
+
+  .head {
+    height: $head-height;
+  }
+
+  .content {
+    height: calc(100% - #{$head-height});
+
+    .textarea {
+      height: calc(100% - #{$buttons-height});
+      overflow: auto;
+
+      pre {
+        border: 1px dotted #888;
+        border-radius: 2em;
+      }
+    }
+
+    .buttons {
+      height: $buttons-height;
+      display: flex;
+      align-items: center;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: 0 !important;
+    }
+  }
 }
 
 .loader {
   margin-bottom: 1em;
 
-  .head {
+  .loader-head {
     margin-bottom: 1em;
   }
 
-  .body {
+  .loader-body {
     display: flex;
     align-items: center;
     position: relative;
