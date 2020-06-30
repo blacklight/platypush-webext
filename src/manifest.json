@@ -1,7 +1,7 @@
 {
   "name": "platypush",
   "description": "Web extension for interacting with one or more Platypush instances via browser",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "manifest_version": 2,
   "icons": {
     "16": "icons/icon-16.png",
