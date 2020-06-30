@@ -71,9 +71,16 @@ export default {
 
       if (Array.isArray(action.args)) {
         args = action.args
-          .filter(arg => arg.value && arg.value.length)
+          .filter(arg => arg.value != null && arg.value.length)
           .reduce((obj, arg) => {
             obj[arg.name] = arg.value;
+            return obj;
+          }, {});
+      } else {
+        args = Object.entries(args)
+          .filter(([name, value]) => value != null && value.length)
+          .reduce((obj, [name, value]) => {
+            obj[name] = value;
             return obj;
           }, {});
       }
@@ -277,6 +284,78 @@ export default {
 
       try {
         await Promise.all([this.saveHosts(hosts), this.saveActions(actions), this.saveScripts(scripts)]);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async backupConfig(host) {
+      if (typeof host === 'string') {
+        const hosts = await this.getHosts();
+        if (!(host in hosts)) {
+          this.notify(host, 'No such Platypush host');
+          return;
+        }
+
+        host = hosts[host];
+      }
+
+      this.loading = true;
+      const config = JSON.stringify(await this.loadConfig());
+      const basedir = `\${Config.get("workdir")}/webext`;
+      const filename = `${basedir}/config.json`;
+
+      try {
+        await this.run(
+          {
+            name: 'file.mkdir',
+            args: { directory: basedir },
+          },
+          host
+        );
+
+        await this.run(
+          {
+            name: 'file.write',
+            args: {
+              file: filename,
+              content: config,
+            },
+          },
+          host
+        );
+
+        this.notify(`Configugration successfully backed up to ${host.name}`, 'Backup successful');
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async getConfig(host) {
+      if (typeof host === 'string') {
+        const hosts = await this.getHosts();
+        if (!(host in hosts)) {
+          this.notify(host, 'No such Platypush host');
+          return;
+        }
+
+        host = hosts[host];
+      }
+
+      this.loading = true;
+      const basedir = `\${Config.get("workdir")}/webext`;
+      const filename = `${basedir}/config.json`;
+
+      try {
+        const config = await this.run(
+          {
+            name: 'file.read',
+            args: { file: filename },
+          },
+          host
+        );
+
+        return config;
       } finally {
         this.loading = false;
       }

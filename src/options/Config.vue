@@ -4,17 +4,41 @@
       <h2>Extension Configuration</h2>
       <form class="loader" ref="loader" @submit.prevent="loadURL">
         <div class="loader-head">
-          Load configuration
-          <input type="radio" id="_file" value="file" v-model="extConfigType" />
-          <label for="_file">From file</label>
-          <input type="radio" id="_url" value="url" v-model="extConfigType" />
-          <label for="_url">From URL</label>
+          <div class="left">
+            Load configuration
+            <input type="radio" id="_file" value="file" v-model="extConfigType" />
+            <label for="_file">From file</label>
+            <input type="radio" id="_url" value="url" v-model="extConfigType" />
+            <label for="_url">From URL</label>
+            <input type="radio" id="_host" value="host" v-model="extConfigType" />
+            <label for="_host">From device</label>
+          </div>
+
+          <div class="right" v-if="Object.keys(hosts).length">
+            <select id="host-selector" v-model="selectedHost">
+              <option disabled :selected="!selectedHost" value="">Backup configuration to a device</option>
+              <option v-for="(host, name) in hosts" :selected="selectedHost === name" :key="name" :value="name">{{ name }}</option>
+            </select>
+
+            <button type="button" :disabled="loading || !selectedHost || savedConfig !== config" @click.stop="backupConfig(selectedHost)">
+              <i class="fas fa-upload" /> &nbsp; Upload
+            </button>
+          </div>
         </div>
 
         <div class="loader-body">
           <input type="file" name="file" placeholder="Configuration file" accept="application/json, text/x-json, text/plain" @change="uploadFile" v-if="extConfigType === 'file'" />
           <input type="text" name="url" placeholder="Configuration URL" v-model="extURL" v-if="extConfigType === 'url'" />
           <input type="submit" value="Load" v-if="extConfigType === 'url'" />
+
+          <select id="host-selector" v-model="selectedHost" v-if="extConfigType === 'host'">
+            <option disabled :selected="!selectedHost" value="">Select a device</option>
+            <option v-for="(host, name) in hosts" :selected="selectedHost === name" :key="name" :value="name">{{ name }}</option>
+          </select>
+
+          <button type="button" :disabled="loading || !selectedHost" @click.stop="restoreConfig(selectedHost)" v-if="extConfigType === 'host'">
+            <i class="fas fa-download" /> &nbsp; Restore
+          </button>
         </div>
       </form>
     </div>
@@ -22,7 +46,6 @@
     <form class="content" ref="content" @submit.prevent="save">
       <div class="textarea">
         <PrismEditor name="text" v-model="config" :code="loading ? 'Loading...' : config" language="js" :emitEvents="true" />
-        <!-- <textarea name="text" ref="text" v-model="config" v-text="loading ? 'Loading...' : config" @focus="onFocus" :disabled="loading" /> -->
       </div>
 
       <div class="buttons">
@@ -52,6 +75,8 @@ export default {
       savedConfig: null,
       extConfigType: 'file',
       extURL: null,
+      selectedHost: null,
+      hosts: [],
     };
   },
 
@@ -65,6 +90,7 @@ export default {
 
     async reload() {
       const config = await this.loadConfig();
+      this.hosts = config.hosts || [];
       this.config = JSON.stringify(config, null, '  ');
       this.savedConfig = this.config;
     },
@@ -121,6 +147,10 @@ export default {
         this.loading = false;
       }
     },
+
+    async restoreConfig(host) {
+      this.config = JSON.stringify(await this.getConfig(host), null, '  ');
+    },
   },
 
   created() {
@@ -176,7 +206,18 @@ $buttons-height: 5em;
   margin-bottom: 1em;
 
   .loader-head {
+    display: flex;
+    flex-direction: row;
     margin-bottom: 1em;
+
+    .left {
+      width: 50%;
+    }
+
+    .right {
+      width: 50%;
+      text-align: right;
+    }
   }
 
   .loader-body {
@@ -196,6 +237,10 @@ $buttons-height: 5em;
     position: absolute;
     right: 0;
   }
+}
+
+select {
+  margin-right: 0.5em;
 }
 </style>
 
