@@ -1,28 +1,34 @@
 <template>
-  <ul class="menu">
-    <li
-      class="host"
-      v-for="(host, hostname) in hosts"
-      :key="hostname"
-      :class="{ selected: hostname === selectedHost }"
-      @click="$emit('select', 'host', hostname, hostname === selectedHost ? null : selectedHostOption)"
-    >
-      <i class="fas fa-hdd" /> &nbsp; {{ host.name }}
-      <ul class="host-menu" v-if="hostname === selectedHost">
-        <li
-          v-for="(option, optionName) in hostOptions"
-          :key="optionName"
-          :class="{ selected: selectedHostOption === optionName }"
-          @click.stop="$emit('select', 'host', hostname, optionName)"
-        >
-          <i :class="option.iconClass" /> &nbsp; {{ option.displayName }}
-        </li>
-      </ul>
-    </li>
+  <div class="menu-container" :class="{ collapsed: hidden }">
+    <div class="toggler" @click="hidden = !hidden">
+      <i class="fas" :class="'fa-chevron-' + (hidden ? 'right' : 'left')" />
+    </div>
 
-    <li class="add" :class="{ selected: selectedTab === 'add' }" @click="$emit('select', 'add')"><i class="fas fa-plus" /> &nbsp; Add Device</li>
-    <li class="config" :class="{ selected: selectedTab === 'config' }" @click="$emit('select', 'config')"><i class="fas fa-cog" /> &nbsp; Configuration</li>
-  </ul>
+    <ul class="menu" v-if="!hidden">
+      <li
+        class="host"
+        v-for="(host, hostname) in hosts"
+        :key="hostname"
+        :class="{ selected: hostname === selectedHost }"
+        @click="$emit('select', 'host', hostname, hostname === selectedHost ? null : selectedHostOption)"
+      >
+        <i class="fas fa-hdd" /> &nbsp; {{ host.name }}
+        <ul class="host-menu" v-if="hostname === selectedHost">
+          <li
+            v-for="(option, optionName) in hostOptions"
+            :key="optionName"
+            :class="{ selected: selectedHostOption === optionName }"
+            @click.stop="$emit('select', 'host', hostname, optionName)"
+          >
+            <i :class="option.iconClass" /> &nbsp; {{ option.displayName }}
+          </li>
+        </ul>
+      </li>
+
+      <li class="add" :class="{ selected: selectedTab === 'add' }" @click="$emit('select', 'add')"><i class="fas fa-plus" /> &nbsp; Add Device</li>
+      <li class="config" :class="{ selected: selectedTab === 'config' }" @click="$emit('select', 'config')"><i class="fas fa-cog" /> &nbsp; Configuration</li>
+    </ul>
+  </div>
 </template>
 
 <script>
@@ -33,6 +39,16 @@ export default {
     selectedTab: String,
     selectedHost: String,
     selectedHostOption: String,
+    show: {
+      type: Boolean,
+      default: true,
+    },
+  },
+
+  data() {
+    return {
+      hidden: !this.show,
+    };
   },
 
   computed: {
@@ -53,12 +69,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.menu {
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  margin: 0;
-  padding: 0;
-  box-shadow: 1px 1px 1.5px 1px rgba(0, 0, 0, 0.5);
+.menu-container {
+  position: relative;
 
   @media screen and (max-width: 800px) {
     & {
@@ -77,6 +89,20 @@ export default {
       width: 25%;
     }
   }
+
+  &.collapsed {
+    width: 2em;
+  }
+}
+
+.menu {
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  margin: 0;
+  padding: 0;
+  box-shadow: 1px 1px 1.5px 1px rgba(0, 0, 0, 0.5);
 
   li {
     display: block;
@@ -112,6 +138,22 @@ export default {
       background-color: rgba(60, 140, 120, 0.9);
       padding-bottom: 0.75em;
     }
+  }
+}
+
+.toggler {
+  position: absolute;
+  bottom: 0;
+  left: calc(50% - 0.5em);
+  font-size: 2em;
+  cursor: pointer;
+
+  .fa-chevron-right {
+    color: black;
+  }
+
+  .fa-chevron-left {
+    color: white;
   }
 }
 </style>
