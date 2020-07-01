@@ -1,3 +1,4 @@
+<!--suppress HtmlFormInputWithoutLabel -->
 <template>
   <div class="page run">
     <h2>Run a command on {{ host.name }}</h2>
@@ -109,7 +110,7 @@
           :disabled="loading"
           :separators="[',', ';']"
           :tags="selectedCategories.map(cat => (typeof cat === 'object' ? cat : { text: cat }))"
-          @tags-changed="tags => (selectedCategories = tags)"
+          @tags-changed="onCategoriesChanged"
           placeholder="Categories"
         />
       </div>
@@ -440,6 +441,10 @@ export default {
       } else {
         this.action.defaultArgs = {};
       }
+    },
+
+    onCategoriesChanged(tags) {
+      this.selectedCategories = tags;
     },
 
     initAction() {

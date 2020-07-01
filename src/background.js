@@ -37,7 +37,7 @@ const menu = {
     this.hosts = await utils.methods.getHosts();
     this.actions = await utils.methods.getActions();
     this.scripts = await utils.methods.getScripts();
-    browser.contextMenus.removeAll();
+    await browser.contextMenus.removeAll();
 
     for (const [host] of Object.entries(this.hosts)) {
       const hostId = this.separator + host;
@@ -71,9 +71,9 @@ const menu = {
       const target = await utils.methods.getTargetElement();
 
       if (action in this.actions) {
-        utils.methods.run(this.actions[action], this.hosts[host]);
+        await utils.methods.run(this.actions[action], this.hosts[host]);
       } else {
-        utils.methods.runScript(this.scripts[action].script, this.hosts[host], tab, target);
+        await utils.methods.runScript(this.scripts[action].script, this.hosts[host], tab, target);
       }
     });
   },
@@ -84,6 +84,7 @@ const menu = {
 };
 
 const onCreate = () => {
+  // noinspection JSIgnoredPromiseFromCall
   menu.create();
 };
 
