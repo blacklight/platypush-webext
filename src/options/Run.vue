@@ -157,9 +157,9 @@ export default {
     selectedScript: Object,
     scriptTemplate: {
       type: String,
-      default: `async (app, host, browser, tab, target, ...args) => {
+      default: `async (app, args) => {
   // Run some action on the host
-  const status = await app.run({ name: 'music.mpd.pause' }, host);
+  const status = await app.run({ name: 'music.mpd.pause' }, args.host);
 
   // Send notifications to the browser
   app.notify(status.state, 'Music status changed');
@@ -457,7 +457,7 @@ export default {
       this.saveParams.name = action.displayName;
       this.saveParams.color = action.color;
       this.saveParams.iconClass = action.iconClass;
-      this.selectedCategories = action.categories;
+      this.selectedCategories = action.categories.map(cat => (typeof cat === 'string' ? { text: cat } : cat));
       this.selectedHosts = action.hosts;
 
       if (this.selectedAction) {

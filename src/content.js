@@ -4,23 +4,24 @@ const context = {
   targetElement: null,
 };
 
-browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+browser.runtime.onMessage.addListener(async message => {
   switch (message.type) {
     case 'getURL':
-      sendResponse(window.location.href);
+      return Promise.resolve(window.location.href);
+
+    case 'setURL':
+      window.location.href = message.url;
       break;
 
     case 'getDOM':
-      sendResponse(document.getElementsByTagName('html')[0].outerHTML);
-      break;
+      return Promise.resolve(document.getElementsByTagName('html')[0].outerHTML);
 
     case 'setDOM':
-      document.getElementsByTagName('html')[0].innerHTML = message.html;
+      document.documentElement.innerHTML = message.html;
       break;
 
     case 'getTargetElement':
-      sendResponse(context.targetElement ? context.targetElement.outerHTML : null);
-      break;
+      return Promise.resolve(context.targetElement ? context.targetElement.outerHTML : null);
   }
 });
 

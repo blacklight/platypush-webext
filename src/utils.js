@@ -1,6 +1,6 @@
 import axios from 'axios';
-import Mercury from '@postlight/mercury-parser';
 import Vue from 'vue';
+import _script from './script';
 
 export default {
   data() {
@@ -10,8 +10,28 @@ export default {
   },
 
   methods: {
-    notify(message, title = 'platypush') {
-      browser.notifications.create({
+    async notify(message, title = 'platypush', error = false) {
+      let msg = '';
+      if (title && title.length) {
+        msg = `${title}`;
+      }
+
+      if (message && message.length) {
+        if (msg.length > 0) {
+          msg += ': ';
+        }
+        msg += message;
+      }
+
+      if (msg.length) {
+        if (error) {
+          console.error(msg);
+        } else {
+          console.log(msg);
+        }
+      }
+
+      await browser.notifications.create({
         type: 'basic',
         title: title,
         message: message,
@@ -25,7 +45,7 @@ export default {
       });
 
       if (!tabs.length) {
-        this.notify('', 'No active tab');
+        await this.notify('No active tab', '', true);
         return;
       }
 
@@ -78,7 +98,7 @@ export default {
           }, {});
       } else {
         args = Object.entries(args)
-          .filter(([name, value]) => value != null && value.length)
+          .filter(([, value]) => value != null && value.length)
           .reduce((obj, [name, value]) => {
             obj[name] = value;
             return obj;
@@ -86,8 +106,8 @@ export default {
       }
 
       Object.keys(args).forEach(name => {
+        // URL wildcard
         if (args[name] === '$URL$') {
-          // URL wildcard
           if (!currentURL) {
             console.warn('Unable to get the current URL');
           } else {
@@ -115,28 +135,46 @@ export default {
 
         const errors = msg.data.response.errors;
         if (errors && errors.length) {
-          throw new Error(errors[0]);
+          // noinspection ExceptionCaughtLocallyJS
+          throw errors[0];
         }
 
         return msg.data.response.output;
       } catch (e) {
-        this.notify(e.toString(), 'Request error');
+        await this.notify(e.toString(), 'Request error');
         throw e;
       }
+    },
+
+    prepareScript(script, host, tab, target, ...args) {
+      args = JSON.stringify({
+        host: host,
+        tabId: tab ? tab.id : null,
+        target: typeof target === 'object' ? target.outerHTML : target,
+        ...args,
+      });
+
+      return `(${script})(${_script.api}, ${args})`;
     },
 
     async runScript(script, host, tab, target, ...args) {
       this.loading = true;
 
       try {
-        if (typeof script === 'string') {
-          /* eslint no-eval: "off" */
-          script = eval(this.script);
+        if (!tab) {
+          tab = await this.getCurrentTab();
         }
 
-        return await script(this, host, browser, tab, target, ...args);
+        if (!tab) {
+          return;
+        }
+
+        const code = this.prepareScript(script, host, tab, target, ...args);
+        return await browser.tabs.executeScript(tab.id, {
+          code: code,
+        });
       } catch (e) {
-        this.notify(e.message, 'Script error');
+        await this.notify(e.message, 'Script error', true);
         throw e;
       } finally {
         this.loading = false;
@@ -182,7 +220,7 @@ export default {
       }
     },
 
-    async getScripts(parse = true) {
+    async getScripts() {
       this.loading = true;
 
       try {
@@ -192,10 +230,6 @@ export default {
         }
 
         return Object.entries(JSON.parse(response.scripts)).reduce((obj, [name, info]) => {
-          if (parse && typeof info.script === 'string') {
-            info.script = eval(info.script);
-          }
-
           obj[name] = info;
           return obj;
         }, {});
@@ -224,7 +258,7 @@ export default {
 
       actions[action.displayName] = action;
       await this.saveActions(actions);
-      this.notify('You can find this action under the Local Actions menu', 'Action saved');
+      await this.notify('You can find this action under the Local Actions menu', 'Action saved');
     },
 
     async saveScripts(scripts) {
@@ -242,7 +276,7 @@ export default {
 
         await browser.storage.local.set({ scripts: JSON.stringify(scripts) });
       } catch (e) {
-        this.notify(e.message, 'Error on script save');
+        await this.notify(e.message, 'Error on script save');
       } finally {
         this.loading = false;
       }
@@ -258,7 +292,7 @@ export default {
 
       scripts[script.displayName] = script;
       await this.saveScripts(scripts);
-      this.notify('You can find this script under the Local Actions menu', 'Script saved');
+      await this.notify('You can find this script under the Local Actions menu', 'Script saved');
     },
 
     async loadConfig() {
@@ -293,7 +327,7 @@ export default {
       if (typeof host === 'string') {
         const hosts = await this.getHosts();
         if (!(host in hosts)) {
-          this.notify(host, 'No such Platypush host');
+          await this.notify(host, 'No such Platypush host');
           return;
         }
 
@@ -325,7 +359,7 @@ export default {
           host
         );
 
-        this.notify(`Configugration successfully backed up to ${host.name}`, 'Backup successful');
+        await this.notify(`Configuration successfully backed up to ${host.name}`, 'Backup successful');
       } finally {
         this.loading = false;
       }
@@ -335,7 +369,7 @@ export default {
       if (typeof host === 'string') {
         const hosts = await this.getHosts();
         if (!(host in hosts)) {
-          this.notify(host, 'No such Platypush host');
+          await this.notify(host, 'No such Platypush host');
           return;
         }
 
@@ -347,15 +381,13 @@ export default {
       const filename = `${basedir}/config.json`;
 
       try {
-        const config = await this.run(
+        return await this.run(
           {
             name: 'file.read',
             args: { file: filename },
           },
           host
         );
-
-        return config;
       } finally {
         this.loading = false;
       }
@@ -394,11 +426,6 @@ export default {
     isHostFormValid(form) {
       return form.name.value.length && form.address.value.length && this.isPortValid(form.port.value) && this.isPortValid(form.websocketPort.value);
     },
-  },
-
-  created() {
-    this.$axios = axios;
-    this.$mercury = Mercury;
   },
 };
 
