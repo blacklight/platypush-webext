@@ -80,6 +80,12 @@
     </div>
 
     <div v-else>
+      <div class="help">
+        A script is a custom snippet of JavaScript that can be like a normal action, but it can also access the context of the browser and run more complex logic. The available
+        script API provides many tools to interact both with other Platypush devices and with the browser context. You can check some examples
+        <a href="https://gist.github.com/BlackLight/d80c571705215924abc06a80994fd5f4" target="_blank">here</a>.
+      </div>
+
       <form ref="runForm" @submit.prevent="runAction">
         <PrismEditor v-model="script" language="js" />
 
@@ -503,6 +509,7 @@ export default {
 }
 
 .help {
+  max-width: 50em;
   margin-bottom: 1em;
 }
 
