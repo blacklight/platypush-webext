@@ -1,0 +1,3 @@
+[submodule "example"]
+	path = example
+	url = git@gist.github.com:d80c571705215924abc06a80994fd5f4.git
