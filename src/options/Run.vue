@@ -159,7 +159,7 @@ export default {
       type: String,
       default: `async (app, args) => {
   // Run some action on the host
-  const status = await app.run({ name: 'music.mpd.pause' }, args.host);
+  const status = await app.run({ action: 'music.mpd.pause' }, args.host);
 
   // Send notifications to the browser
   app.notify(status.state, 'Music status changed');
@@ -291,7 +291,7 @@ export default {
         if (this.actionMode === 'request') {
           this.actionResponse = await this.run(
             {
-              name: this.action.name,
+              action: this.action.name,
               args: this.getActionArgs(),
             },
             this.host
@@ -338,7 +338,7 @@ export default {
       try {
         this.plugins = await this.run(
           {
-            name: 'inspect.get_all_plugins',
+            action: 'inspect.get_all_plugins',
             args: {
               html_doc: false,
             },
@@ -346,7 +346,7 @@ export default {
           this.host
         );
 
-        this.procedures = await this.run({ name: 'inspect.get_procedures' }, this.host);
+        this.procedures = await this.run({ action: 'inspect.get_procedures' }, this.host);
       } finally {
         this.pluginsLoading = false;
       }
@@ -413,7 +413,7 @@ export default {
         iconClass: iconClass,
         color: color.length ? color : null,
         hosts: hosts,
-        name: this.action.name,
+        action: this.action.name,
         args: this.getActionArgs(),
         categories: this.selectedCategories.map(obj => obj.text),
       };

@@ -127,7 +127,7 @@ export default {
           execURL,
           {
             type: 'request',
-            action: action.name,
+            action: action.action,
             args: args,
           },
           config
@@ -342,7 +342,7 @@ export default {
       try {
         await this.run(
           {
-            name: 'file.mkdir',
+            action: 'file.mkdir',
             args: { directory: basedir },
           },
           host
@@ -350,7 +350,7 @@ export default {
 
         await this.run(
           {
-            name: 'file.write',
+            action: 'file.write',
             args: {
               file: filename,
               content: config,
@@ -383,7 +383,7 @@ export default {
       try {
         return await this.run(
           {
-            name: 'file.read',
+            action: 'file.read',
             args: { file: filename },
           },
           host
