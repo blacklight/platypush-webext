@@ -83,9 +83,10 @@ const app = {
       switch (port.name) {
         case 'action':
           port.onMessage.addListener(async message => {
+            let ret = null;
             switch (message.type) {
               case 'run':
-                const ret = await utils.methods.run(message.action, message.host);
+                ret = await utils.methods.run(message.action, message.host);
                 port.postMessage(ret);
                 break;
             }
@@ -118,9 +119,11 @@ const app = {
         case 'dom':
           port.onMessage.addListener(async message => {
             const tab = await utils.methods.getCurrentTab();
+            let dom = null;
+
             switch (message.type) {
               case 'get':
-                const dom = await browser.tabs.sendMessage(tab.id, { type: 'getDOM' }, {});
+                dom = await browser.tabs.sendMessage(tab.id, { type: 'getDOM' }, {});
                 port.postMessage(dom);
                 break;
 
@@ -169,9 +172,10 @@ const app = {
 
         case 'mercury':
           port.onMessage.addListener(async message => {
+            let response = null;
             switch (message.type) {
               case 'parse':
-                const response = await Mercury.parse(message.url, {
+                response = await Mercury.parse(message.url, {
                   contentType: 'html',
                   html: message.html,
                 });
