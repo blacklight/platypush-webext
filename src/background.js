@@ -1,6 +1,6 @@
 import utils from './utils';
-import axios from 'axios';
-import Mercury from '@postlight/mercury-parser';
+import Message from './listeners/message';
+import Menu from './listeners/menu';
 
 global.browser = require('webextension-polyfill');
 
@@ -35,12 +35,7 @@ const app = {
     }, {});
   },
 
-  async refresh() {
-    this.hosts = await utils.methods.getHosts();
-    this.actions = await utils.methods.getActions();
-    this.scripts = await utils.methods.getScripts();
-    await browser.contextMenus.removeAll();
-
+  prepareMenu() {
     for (const [host] of Object.entries(this.hosts)) {
       const hostId = this.separator + host;
       browser.contextMenus.create({
@@ -67,127 +62,17 @@ const app = {
         }
       }
     }
+  },
 
-    browser.contextMenus.onClicked.addListener(async (info, tab) => {
-      const [host, , action] = info.menuItemId.split(this.separator).slice(1);
-      const target = await utils.methods.getTargetElement();
+  async refresh() {
+    this.hosts = await utils.methods.getHosts();
+    this.actions = await utils.methods.getActions();
+    this.scripts = await utils.methods.getScripts();
+    await browser.contextMenus.removeAll();
 
-      if (action in this.actions) {
-        await utils.methods.run(this.actions[action], this.hosts[host]);
-      } else {
-        await utils.methods.runScript(this.scripts[action].script, this.hosts[host], tab, target);
-      }
-    });
-
-    browser.runtime.onConnect.addListener(port => {
-      switch (port.name) {
-        case 'action':
-          port.onMessage.addListener(async message => {
-            let ret = null;
-            switch (message.type) {
-              case 'run':
-                ret = await utils.methods.run(message.action, message.host);
-                port.postMessage(ret);
-                break;
-            }
-          });
-
-          break;
-
-        case 'url':
-          port.onMessage.addListener(async message => {
-            const tab = await utils.methods.getCurrentTab();
-            switch (message.type) {
-              case 'get':
-                port.postMessage(tab.url);
-                break;
-
-              case 'set':
-                await browser.tabs.sendMessage(tab.id, { type: 'setURL', url: message.url }, {});
-                break;
-
-              case 'open':
-                await browser.tabs.create({
-                  url: message.url,
-                });
-                break;
-            }
-          });
-
-          break;
-
-        case 'dom':
-          port.onMessage.addListener(async message => {
-            const tab = await utils.methods.getCurrentTab();
-            let dom = null;
-
-            switch (message.type) {
-              case 'get':
-                dom = await browser.tabs.sendMessage(tab.id, { type: 'getDOM' }, {});
-                port.postMessage(dom);
-                break;
-
-              case 'set':
-                await browser.tabs.sendMessage(tab.id, { type: 'setDOM', html: message.html }, {});
-                break;
-            }
-          });
-
-          break;
-
-        case 'notify':
-          port.onMessage.addListener(async message => {
-            switch (message.type) {
-              case 'run':
-                utils.methods.notify(message.message, message.title, message.error);
-                break;
-            }
-          });
-
-          break;
-
-        case 'axios':
-          port.onMessage.addListener(async message => {
-            const method = axios[message.type.toLowerCase()];
-            const response = await method(message.url, ...message.args);
-            port.postMessage({
-              config: {
-                data: response.config.data,
-                headers: response.config.headers,
-                maxContentLength: response.config.maxContentLength,
-                method: response.config.method,
-                timeout: response.config.timeout,
-                url: response.config.url,
-                xsrfCookieName: response.config.xsrfCookieName,
-                xsrfHeaderName: response.config.xsrfHeaderName,
-              },
-              headers: response.headers,
-              data: response.data,
-              status: response.status,
-              statusText: response.statusText,
-            });
-          });
-
-          break;
-
-        case 'mercury':
-          port.onMessage.addListener(async message => {
-            let response = null;
-            switch (message.type) {
-              case 'parse':
-                response = await Mercury.parse(message.url, {
-                  contentType: 'html',
-                  html: message.html,
-                });
-
-                port.postMessage(response);
-                break;
-            }
-          });
-
-          break;
-      }
-    });
+    this.prepareMenu();
+    browser.contextMenus.onClicked.addListener(Menu.Listener);
+    browser.runtime.onConnect.addListener(Message.Listener);
   },
 
   async create() {
