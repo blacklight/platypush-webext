@@ -10,6 +10,10 @@ export default {
   },
 
   methods: {
+    getExtensionId() {
+      return browser.i18n.getMessage('@@extension_id');
+    },
+
     async notify(message, title = 'platypush', error = false) {
       let msg = '';
       if (title && title.length) {
@@ -39,10 +43,17 @@ export default {
     },
 
     async getCurrentTab() {
-      const tabs = await browser.tabs.query({
-        currentWindow: true,
-        active: true,
-      });
+      let tabs = [];
+
+      try {
+        tabs = await browser.tabs.query({
+          currentWindow: true,
+          active: true,
+        });
+      } catch (e) {
+        console.warn('Could not get active tab', e);
+        return;
+      }
 
       if (!tabs.length) {
         await this.notify('No active tab', '', true);
@@ -54,22 +65,41 @@ export default {
 
     async getURL() {
       const tab = await this.getCurrentTab();
-      return await browser.tabs.sendMessage(tab.id, { type: 'getURL' });
+      try {
+        return await browser.tabs.sendMessage(tab.id, { type: 'getURL' });
+      } catch (e) {
+        console.warn('Could not get URL', e);
+      }
     },
 
     async getDOM() {
-      const tab = await this.getCurrentTab();
-      return await browser.tabs.sendMessage(tab.id, { type: 'getDOM' });
+      try {
+        const tab = await this.getCurrentTab();
+        return await browser.tabs.sendMessage(tab.id, { type: 'getDOM' });
+      } catch (e) {
+        console.warn('Could not get DOM', e);
+      }
     },
 
     async setDOM(html) {
       const tab = await this.getCurrentTab();
-      await browser.tabs.sendMessage(tab.id, { type: 'setDOM', html: html });
+      try {
+        await browser.tabs.sendMessage(tab.id, { type: 'setDOM', html: html });
+      } catch (e) {
+        console.warn('Could not set DOM', e);
+      }
     },
 
     async getTargetElement() {
       const tab = await this.getCurrentTab();
-      const target = await browser.tabs.sendMessage(tab.id, { type: 'getTargetElement' });
+      let target = null;
+      try {
+        target = await browser.tabs.sendMessage(tab.id, { type: 'getTargetElement' });
+      } catch (e) {
+        console.warn('Could not get current element', e);
+        return;
+      }
+
       if (!target) {
         return;
       }
@@ -91,14 +121,14 @@ export default {
 
       if (Array.isArray(action.args)) {
         args = action.args
-          .filter(arg => arg.value != null && arg.value.length)
+          .filter(arg => arg.value != null && (typeof arg.value !== 'string' || arg.value.length))
           .reduce((obj, arg) => {
             obj[arg.name] = arg.value;
             return obj;
           }, {});
       } else {
         args = Object.entries(args)
-          .filter(([, value]) => value != null && value.length)
+          .filter(([, value]) => value != null && (typeof value !== 'string' || value.length))
           .reduce((obj, [name, value]) => {
             obj[name] = value;
             return obj;
@@ -295,15 +325,72 @@ export default {
       await this.notify('You can find this script under the Local Actions menu', 'Script saved');
     },
 
+    async getCommands() {
+      this.loading = true;
+
+      try {
+        const response = await browser.storage.local.get('commands');
+        if (!response.commands) {
+          return {};
+        }
+
+        return JSON.parse(response.commands);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async saveCommands(commands) {
+      this.loading = true;
+      try {
+        await browser.storage.local.set({ commands: JSON.stringify(commands) });
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async saveCommand(command, action) {
+      const commands = await this.getCommands();
+      if (command in commands) {
+        if (action === commands[command]) {
+          return;
+        }
+
+        if (!confirm(`The action ${commands[command]} is already linked to this key binding. Do you want to overwrite it?`)) {
+          return;
+        }
+      }
+
+      Object.entries(commands).forEach(([cmd, act]) => {
+        if (act === action) {
+          delete commands[cmd];
+        }
+      });
+
+      commands[command] = action;
+      await this.saveCommands(commands);
+    },
+
+    async removeCommand(command, action) {
+      const commands = await this.getCommands();
+      if (!(command in commands) || !confirm('Are you sure that you want to remove this key binding?')) {
+        return;
+      }
+
+      delete commands[command];
+      await this.saveCommands(commands);
+    },
+
     async loadConfig() {
       this.loading = true;
 
       try {
-        const [hosts, actions, scripts] = await Promise.all([this.getHosts(), this.getActions(), this.getScripts(false)]);
+        const [hosts, actions, scripts, commands] = await Promise.all([this.getHosts(), this.getActions(), this.getScripts(false), this.getCommands()]);
         return {
           hosts: hosts,
           actions: actions,
           scripts: scripts,
+          commands: commands,
         };
       } finally {
         this.loading = false;
@@ -315,9 +402,10 @@ export default {
       const hosts = config.hosts || {};
       const actions = config.actions || {};
       const scripts = config.scripts || {};
+      const commands = config.commands || {};
 
       try {
-        await Promise.all([this.saveHosts(hosts), this.saveActions(actions), this.saveScripts(scripts)]);
+        await Promise.all([this.saveHosts(hosts), this.saveActions(actions), this.saveScripts(scripts), this.saveCommands(commands)]);
       } finally {
         this.loading = false;
       }

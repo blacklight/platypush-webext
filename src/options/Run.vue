@@ -16,8 +16,8 @@
 
     <div v-if="actionMode === 'request'">
       <div class="help">
-        &nbsp; <a href="https://platypush.readthedocs.io/en/latest/plugins.html" target="_blank">Plugins reference</a>. Use <tt>$URL$</tt> as argument value to denote the current
-        URL. You can also call remotely stored procedure through <tt>procedure.&lt;procedure_name&gt;</tt>.
+        &nbsp; <a href="https://platypush.readthedocs.io/en/latest/plugins.html" target="_blank">Plugins reference</a>. Use <code>$URL$</code> as argument value to denote the
+        current URL. You can also call remotely stored procedure through <code>procedure.&lt;procedure_name&gt;</code>.
       </div>
 
       <form ref="runForm" @submit.prevent="runAction">
@@ -28,12 +28,14 @@
               :source="actionsAutocomplete"
               :disableInput="loading"
               :name="action.name || ''"
-              :initialValue="selectedAction ? selectedAction.name : null"
-              :initialDisplay="selectedAction ? selectedAction.name : null"
+              :initialValue="selectedAction ? selectedAction.action : null"
+              :initialDisplay="selectedAction ? selectedAction.action : null"
               @input="onActionChange"
             />
           </div>
-          <div class="action-doc" v-text="actionTemplate.doc" v-if="actionTemplate.doc" />
+          <div class="action-doc" v-if="actionTemplate.doc">
+            <vue-markdown :source="actionTemplate.doc" v-if="actionTemplate.doc" />
+          </div>
         </div>
 
         <div class="row" v-for="(arg, name) in action.defaultArgs" :key="name">
@@ -96,7 +98,7 @@
       </form>
     </div>
 
-    <form class="save-form" @submit.prevent="save" v-if="saveMode">
+    <form class="save-form" ref="saveForm" @submit.prevent="save" v-if="saveMode">
       <div class="row">
         <input type="text" name="displayName" v-model="saveParams.name" placeholder="Display name" />
       </div>
@@ -133,6 +135,14 @@
         <MultipleHostSelector :hosts="hosts" :selected="selectedHosts && selectedHosts.length ? selectedHosts : [host.name]" />
       </div>
 
+      <div class="row command-selector" v-if="Object.keys(commands).length">
+        <label for="_command-selector">Key binding associated to this action</label>
+        <select id="_command-selector" v-model="command">
+          <option value="">-- No key binding</option>
+          <option v-for="command in commands" :key="command.name" :value="command.name" v-text="command.shortcut" />
+        </select>
+      </div>
+
       <div class="row buttons">
         <button type="submit" :disabled="loading"><i class="fas fa-save" /> &nbsp; Save {{ actionMode === 'request' ? 'Action' : 'Script' }}</button>
         <button type="button" @click="toggleSaveMode" :disabled="loading"><i class="fas fa-times" /> &nbsp; Cancel</button>
@@ -148,6 +158,7 @@
 import 'prismjs';
 import 'prismjs/themes/prism.css';
 import PrismEditor from 'vue-prism-editor';
+import VueMarkdown from 'vue-markdown';
 
 import mixins from '../utils';
 import Autocomplete from 'vuejs-auto-complete';
@@ -181,6 +192,7 @@ export default {
     VueTagsInput,
     MultipleHostSelector,
     PrismEditor,
+    VueMarkdown,
   },
 
   data() {
@@ -198,6 +210,8 @@ export default {
       selectedCategories: [],
       selectedHosts: null,
       actionMode: 'request',
+      commands: {},
+      command: '',
       action: {
         name: null,
         args: [],
@@ -290,6 +304,17 @@ export default {
       }, {});
     },
 
+    async updateCommands() {
+      try {
+        this.commands = (await browser.commands.getAll()).reduce((obj, command) => {
+          obj[command.name] = command;
+          return obj;
+        }, {});
+      } catch (e) {
+        console.log('Could not get configured commands', e);
+      }
+    },
+
     async runAction() {
       this.loading = true;
 
@@ -362,7 +387,24 @@ export default {
       this.storedActions = await this.getActions();
     },
 
+    async getCommand() {
+      const action = this.saveParams.name.trim();
+      const commands = await this.getCommands();
+      const [command] = Object.entries(commands).filter(([, act]) => act === action)[0] || [];
+      return command;
+    },
+
     async save(event) {
+      const action = event.target.displayName.value.trim();
+      if (this.command && this.command.length) {
+        await this.saveCommand(this.command, action);
+      } else {
+        const command = await this.getCommand();
+        if (command) {
+          await this.removeCommand(command);
+        }
+      }
+
       return this.actionMode === 'request' ? await this.storeAction(event) : await this.storeScript(event);
     },
 
@@ -374,12 +416,12 @@ export default {
       const hosts = [...saveForm.querySelectorAll('input[data-type="host"]:checked')].map(el => el.value);
 
       if (!displayName.length) {
-        this.notify('Please specify an action name', 'No action name provided');
+        await this.notify('Please specify an action name', 'No action name provided');
         return;
       }
 
       if (!hosts.length) {
-        this.notify('Please specify at least one device where the action should run', 'No devices provided');
+        await this.notify('Please specify at least one device where the action should run', 'No devices provided');
         return;
       }
 
@@ -404,12 +446,12 @@ export default {
       const hosts = [...saveForm.querySelectorAll('input[data-type="host"]:checked')].map(el => el.value);
 
       if (!displayName.length) {
-        this.notify('Please specify an action name', 'No action name provided');
+        await this.notify('Please specify an action name', 'No action name provided');
         return;
       }
 
       if (!hosts.length) {
-        this.notify('Please specify at least one device where the action should run', 'No devices provided');
+        await this.notify('Please specify at least one device where the action should run', 'No devices provided');
         return;
       }
 
@@ -453,7 +495,7 @@ export default {
       this.selectedCategories = tags;
     },
 
-    initAction() {
+    async initAction() {
       const action = this.selectedAction || this.selectedScript;
       if (!action) {
         return;
@@ -465,10 +507,11 @@ export default {
       this.saveParams.iconClass = action.iconClass;
       this.selectedCategories = action.categories.map(cat => (typeof cat === 'string' ? { text: cat } : cat));
       this.selectedHosts = action.hosts;
+      this.command = await this.getCommand();
 
       if (this.selectedAction) {
         this.actionMode = 'request';
-        this.action.name = action.name;
+        this.action.name = action.action;
         this.action.defaultArgs = Object.entries(action.args).reduce((obj, [name, value]) => {
           obj[name] = { value: value };
           return obj;
@@ -486,6 +529,7 @@ export default {
     this.loadPlugins();
     this.loadActions();
     this.initAction();
+    this.updateCommands();
   },
 };
 </script>
@@ -524,13 +568,15 @@ export default {
   .action-doc {
     width: 40em;
     margin: 0.5em auto auto 1em;
-    white-space: pre;
     border: 1px solid rgba(0, 0, 0, 0.15);
     border-radius: 1em;
-    padding: 1em;
     max-height: 10em;
     overflow: auto;
     background: rgba(250, 255, 240, 0.5);
+
+    * {
+      margin: 1em;
+    }
   }
 }
 
@@ -605,6 +651,12 @@ form {
 .icon-preview {
   font-size: 2em;
   margin-left: 0.2em;
+}
+
+.command-selector {
+  label {
+    margin-right: 1em;
+  }
 }
 </style>
 

@@ -1,6 +1,8 @@
 import utils from './utils';
-import Message from './listeners/message';
+import Command from './listeners/command';
+import Connect from './listeners/connect';
 import Menu from './listeners/menu';
+import Message from './listeners/message';
 
 global.browser = require('webextension-polyfill');
 
@@ -35,7 +37,9 @@ const app = {
     }, {});
   },
 
-  prepareMenu() {
+  async refreshMenu() {
+    await browser.contextMenus.removeAll();
+
     for (const [host] of Object.entries(this.hosts)) {
       const hostId = this.separator + host;
       browser.contextMenus.create({
@@ -64,19 +68,23 @@ const app = {
     }
   },
 
+  initListeners() {
+    browser.contextMenus.onClicked.addListener(Menu.Listener);
+    browser.runtime.onConnect.addListener(Connect.Listener);
+    browser.runtime.onMessage.addListener(Message.Listener);
+    browser.commands.onCommand.addListener(Command.Listener);
+  },
+
   async refresh() {
     this.hosts = await utils.methods.getHosts();
     this.actions = await utils.methods.getActions();
     this.scripts = await utils.methods.getScripts();
-    await browser.contextMenus.removeAll();
-
-    this.prepareMenu();
-    browser.contextMenus.onClicked.addListener(Menu.Listener);
-    browser.runtime.onConnect.addListener(Message.Listener);
+    await this.refreshMenu();
   },
 
   async create() {
     await this.refresh();
+    this.initListeners();
   },
 };
 
