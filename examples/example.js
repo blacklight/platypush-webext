@@ -92,6 +92,11 @@ export default {
       console.log('Selected element (DOM)', targetDOM);
     }
 
+    // Read and set the clipboard with getClipboard/setClipboard
+    const text = await app.getClipboard();
+    console.log('Text in clipboard', text);
+    await app.setClipboard(`<p>${text}</p>`);
+
     // Anything returned from the function will be returned to the called
     return 42;
   },

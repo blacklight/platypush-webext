@@ -36,6 +36,18 @@ export default {
       });
     },
 
+    getClipboard: () => {
+      return new Promise((resolve, reject) => {
+        navigator.clipboard.readText().then(text => resolve(text), error => reject(error));
+      });
+    },
+
+    setClipboard: (text) => {
+      return new Promise((resolve, reject) => {
+        navigator.clipboard.writeText(text).then(() => resolve(), error => reject(error));
+      });
+    },
+
     openTab: (url) => {
       const port = browser.runtime.connect({ name: 'url' });
       port.postMessage({
