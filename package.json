@@ -1,6 +1,6 @@
 {
   "name": "platypush",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Web extension for interacting with one or more Platypush instances via browser",
   "author": "Fabio Manganiello <info@fabiomanganiello.com>",
   "license": "MIT",
