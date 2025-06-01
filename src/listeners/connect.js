@@ -1,5 +1,5 @@
 import axios from 'axios';
-import Mercury from '@postlight/mercury-parser';
+import Mercury from '@postlight/parser';
 import utils from '../utils';
 
 const Service = (() => {
