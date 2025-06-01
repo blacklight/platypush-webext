@@ -1,58 +1,93 @@
 <template>
   <div class="page backup">
-    <div class="head">
-      <h2>Extension Configuration</h2>
-      <form class="loader" ref="loader" @submit.prevent="loadURL">
-        <div class="loader-head">
-          <div class="left">
-            Load configuration
+    <h2>Extension Configuration</h2>
+
+    <section class="restore">
+      <h3><i class="fas fa-download" /> &nbsp; Restore configuration</h3>
+
+      <form @submit.prevent="loadURL">
+        <div class="left">
+          <div class="row">
             <input type="radio" id="_file" value="file" v-model="extConfigType" />
             <label for="_file">From file</label>
+          </div>
+          <div class="row">
             <input type="radio" id="_url" value="url" v-model="extConfigType" />
             <label for="_url">From URL</label>
-            <input type="radio" id="_host" value="host" v-model="extConfigType" />
+          </div>
+          <div class="row">
+            <input type="radio" id="_host" value="host" v-model="extConfigType" v-if="Object.keys(hosts).length" />
             <label for="_host">From device</label>
           </div>
+        </div>
 
-          <div class="right" v-if="Object.keys(hosts).length">
-            <select id="host-selector" v-model="selectedHost">
-              <option disabled :selected="!selectedHost" value="">Backup configuration to a device</option>
+        <div class="right">
+          <div class="content">
+            <input
+              type="file"
+              name="file"
+              placeholder="Configuration file"
+              accept="application/json, text/x-json, text/plain"
+              @change="uploadFile"
+              v-if="extConfigType === 'file'"
+            />
+            <input type="text" name="url" placeholder="Configuration URL" v-model="extURL" v-if="extConfigType === 'url'" />
+            <input type="submit" value="Load" v-if="extConfigType === 'url'" />
+
+            <select id="host-selector" v-model="selectedHost" v-if="extConfigType === 'host'">
+              <option disabled :selected="!selectedHost" value="">Select a device</option>
               <option v-for="(host, name) in hosts" :selected="selectedHost === name" :key="name" :value="name">{{ name }}</option>
             </select>
 
-            <button type="button" :disabled="loading || !selectedHost || savedConfig !== config" @click.stop="backupConfig(selectedHost)">
-              <i class="fas fa-upload" /> &nbsp; Upload
+            <button type="button" :disabled="loading || !selectedHost" @click.stop="restoreConfig(selectedHost)" v-if="extConfigType === 'host'">
+              <i class="fas fa-download" /> &nbsp; Restore
             </button>
           </div>
         </div>
+      </form>
+    </section>
 
-        <div class="loader-body">
-          <input type="file" name="file" placeholder="Configuration file" accept="application/json, text/x-json, text/plain" @change="uploadFile" v-if="extConfigType === 'file'" />
-          <input type="text" name="url" placeholder="Configuration URL" v-model="extURL" v-if="extConfigType === 'url'" />
-          <input type="submit" value="Load" v-if="extConfigType === 'url'" />
+    <section class="backup" v-if="Object.keys(hosts).length">
+      <h3><i class="fas fa-upload" /> &nbsp; Backup configuration</h3>
 
-          <select id="host-selector" v-model="selectedHost" v-if="extConfigType === 'host'">
-            <option disabled :selected="!selectedHost" value="">Select a device</option>
+      <form @submit.prevent="loadURL">
+        <div class="head">
+          <select id="host-selector" v-model="selectedHost">
+            <option disabled :selected="!selectedHost" value="">Backup configuration to a device</option>
             <option v-for="(host, name) in hosts" :selected="selectedHost === name" :key="name" :value="name">{{ name }}</option>
           </select>
 
-          <button type="button" :disabled="loading || !selectedHost" @click.stop="restoreConfig(selectedHost)" v-if="extConfigType === 'host'">
-            <i class="fas fa-download" /> &nbsp; Restore
+          <button type="button" :disabled="loading || !selectedHost || savedConfig !== config" @click.stop="backupConfig(selectedHost)">
+            <i class="fas fa-upload" /> &nbsp; Upload
           </button>
         </div>
       </form>
-    </div>
+    </section>
 
-    <form class="content" ref="content" @submit.prevent="save">
-      <div class="textarea">
-        <PrismEditor name="text" v-model="config" :code="loading ? 'Loading...' : config" language="js" :emitEvents="true" />
-      </div>
+    <section class="content">
+      <h3><i class="fas fa-cog" /> &nbsp; Configuration</h3>
 
-      <div class="buttons">
-        <button type="button" :disabled="savedConfig === config" @click="reload"><i class="fas fa-undo" /> &nbsp; Undo</button>
-        <button type="submit" :disabled="savedConfig === config"><i class="fas fa-save" /> &nbsp; Save</button>
-      </div>
-    </form>
+      <p>
+        The configuration is stored in the browser's local storage. You can edit it directly, but be careful not to break it. Before manually editing the configuration, it's
+        strongly advised to make a backup of the current configuration.
+      </p>
+
+      <form class="content" ref="content" @submit.prevent="save">
+        <div class="buttons">
+          <button type="button" :disabled="savedConfig === config" @click="reload"><i class="fas fa-undo" /> &nbsp; Undo</button>
+          <button type="submit" :disabled="savedConfig === config"><i class="fas fa-save" /> &nbsp; Save</button>
+        </div>
+
+        <div class="textarea">
+          <PrismEditor name="text" v-model="config" :code="loading ? 'Loading...' : config" language="js" :emitEvents="true" />
+        </div>
+
+        <div class="buttons">
+          <button type="button" :disabled="savedConfig === config" @click="reload"><i class="fas fa-undo" /> &nbsp; Undo</button>
+          <button type="submit" :disabled="savedConfig === config"><i class="fas fa-save" /> &nbsp; Save</button>
+        </div>
+      </form>
+    </section>
   </div>
 </template>
 
@@ -168,21 +203,27 @@ $buttons-height: 5em;
 
 .page {
   height: 100vh;
+  overflow: auto;
   display: flex;
   flex-direction: column;
   padding: 0 !important;
 
-  .head,
-  .content {
+  h2 {
+    padding: 0.5em 1em;
+  }
+
+  section {
     padding: 0 1em;
-  }
 
-  .head {
-    height: $head-height;
-  }
-
-  .content {
-    height: calc(100% - #{$head-height});
+    h3 {
+      margin: 0.5em 0;
+      padding: 0.5em 0;
+      font-size: 1.3em;
+      font-weight: normal;
+      display: flex;
+      align-items: center;
+      color: #353;
+    }
 
     .textarea {
       height: calc(100% - #{$buttons-height});
@@ -205,40 +246,43 @@ $buttons-height: 5em;
   }
 }
 
-.loader {
+section.restore form {
+  display: flex;
+  flex-direction: row;
   margin-bottom: 1em;
 
-  .loader-head {
+  .left {
+    max-width: 30%;
+    margin-right: 4em;
     display: flex;
-    flex-direction: row;
-    margin-bottom: 1em;
+    flex-direction: column;
+  }
 
-    .left {
-      width: 50%;
-    }
+  .right {
+    min-width: calc(70% - 4em);
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
 
-    .right {
-      width: 50%;
-      text-align: right;
+    .content {
+      width: 100%;
+      display: flex;
+      flex-direction: row;
     }
   }
 
-  .loader-body {
+  .body {
     display: flex;
     align-items: center;
     position: relative;
   }
 
   [type='text'] {
-    width: 80%;
     min-width: 10em;
-    max-width: 40em;
-    margin: 0;
-  }
-
-  [type='submit'] {
-    position: absolute;
-    right: 0;
+    margin: 0 0.5em 0 0;
+    display: inline-flex;
+    flex-grow: 1;
+    gap: 0.5em;
   }
 }
 
