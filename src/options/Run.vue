@@ -559,7 +559,7 @@ export default {
 
 .action-head {
   display: flex;
-  align-items: center;
+  flex-direction: column;
 
   .action-name {
     width: 20em;
@@ -588,6 +588,10 @@ form {
     align-items: center;
     margin-bottom: 0.5em;
     padding-bottom: 0.5em;
+
+    &.action-head {
+      align-items: flex-start;
+    }
   }
 
   .label {
