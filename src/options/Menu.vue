@@ -54,7 +54,7 @@ export default {
   computed: {
     hostOptions() {
       return {
-        localProc: {
+        actions: {
           displayName: 'Stored Actions',
           iconClass: 'fas fa-puzzle-piece',
         },

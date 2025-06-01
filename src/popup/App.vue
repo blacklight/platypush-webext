@@ -2,7 +2,7 @@
   <div class="container">
     <div class="no-hosts" v-if="!(hosts && Object.keys(hosts).length)">
       No devices found. Click
-      <a href="/options/options.html" target="_blank">here</a> to configure the extension.
+      <a href="/options/options.html#view=add" target="_blank">here</a> to configure the extension.
     </div>
 
     <div class="main" v-else>

@@ -38,6 +38,37 @@ form {
     }
   }
 
+  button,
+  [type='submit'] {
+    display: inline-block;
+    padding: 0.4em 1em;
+    border-radius: 1em;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    color: #000;
+    cursor: pointer;
+
+    &:hover {
+      background-color: rgba(40, 235, 70, 0.5);
+      border-color: rgba(40, 235, 70, 0.5);
+    }
+
+    &:active {
+      background-color: rgba(40, 235, 70, 0.7);
+      border-color: rgba(40, 235, 70, 0.7);
+    }
+
+    &:disabled {
+      background-color: rgba(200, 200, 200, 0.5);
+      border-color: rgba(200, 200, 200, 0.5);
+      color: rgba(100, 100, 100, 0.5);
+      cursor: not-allowed;
+    }
+  }
+
+  [type='submit'] {
+    background-color: rgba(40, 235, 70, 0.3);
+  }
+
   .buttons {
     margin-top: 0.5em;
     padding-top: 0.5em;
@@ -66,6 +97,40 @@ form {
 
   &.error {
     background: rgba(255, 200, 200, 0.3);
+  }
+}
+
+.help {
+  font-size: 0.9em;
+  color: #666;
+  margin-top: 0.5em;
+  margin-bottom: 1em;
+
+  a {
+    color: #888;
+    text-decoration: none;
+
+    &:hover {
+      color: #555;
+    }
+  }
+}
+
+.errors {
+  margin-top: 0.5em;
+  margin-bottom: 1em;
+
+  ul {
+    list-style-type: none;
+    padding: 0.5em;
+
+    li {
+      background: rgba(255, 200, 200, 0.3);
+      border: 1px solid rgba(255, 100, 100, 0.5);
+      border-radius: 1em;
+      margin-bottom: 0.5em;
+      padding: 0.5em;
+    }
   }
 }
 

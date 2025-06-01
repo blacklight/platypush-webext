@@ -482,28 +482,21 @@ export default {
     },
 
     formToHost(form) {
-      return {
-        name: form.name.value,
-        address: form.address.value,
-        port: parseInt(form.port.value),
-        websocketPort: parseInt(form.websocketPort.value),
-        ssl: form.ssl.checked,
-        token: form.token.value,
-      };
-    },
-
-    onAddrChange(form) {
-      if (form.name.value.length && !form.address.value.startsWith(form.name.value)) {
-        return;
+      const url = new URL(form.url.value.trim());
+      const ssl = url.protocol === 'https:';
+      let port = parseInt(url.port);
+      if (!this.isPortValid(port)) {
+        port = ssl ? 443 : 80;
       }
 
-      form.name.value = form.address.value;
-    },
-
-    onPortChange(form) {
-      const port = form.port.value;
-      if (!this.isPortValid(port)) return;
-      form.websocketPort.value = '' + (parseInt(port) + 1);
+      return {
+        name: form.name.value,
+        address: url.hostname,
+        port: port,
+        websocketPort: port,
+        ssl: ssl,
+        token: form.token.value,
+      };
     },
 
     isPortValid(port) {
@@ -511,8 +504,55 @@ export default {
       return !isNaN(port) && port > 0 && port < 65536;
     },
 
-    isHostFormValid(form) {
-      return form.name.value.length && form.address.value.length && this.isPortValid(form.port.value) && this.isPortValid(form.websocketPort.value);
+    getUrlArgs() {
+      const hash = window.location.hash.slice(1);
+      const args = {};
+      if (!hash) {
+        return args;
+      }
+
+      const parts = hash.split('&');
+      parts.forEach(part => {
+        const [key, value] = part.split('=');
+        if (key && value) {
+          args[key] = decodeURIComponent(value);
+        }
+      });
+
+      return args;
+    },
+
+    setUrlArgs(args) {
+      const hash = Object.entries({ ...this.getUrlArgs(), ...args })
+        .filter(([key, value]) => key && value != null && (typeof value !== 'string' || value.length))
+        .map(([key, value]) => `${key}=${encodeURIComponent(value.toString())}`)
+        .join('&');
+
+      window.location.hash = hash;
+    },
+
+    clearUrlArgs() {
+      window.location.hash = '';
+    },
+
+    getSelectedTab() {
+      return this.getUrlArgs().view;
+    },
+
+    getSelectedHost() {
+      return this.getUrlArgs().host;
+    },
+
+    setSelectedHost(host) {
+      const args = this.getUrlArgs();
+      args.host = host;
+      this.setUrlArgs(args);
+    },
+
+    setSelectedTab(tab) {
+      const args = this.getUrlArgs();
+      args.view = tab;
+      this.setUrlArgs(args);
     },
   },
 };

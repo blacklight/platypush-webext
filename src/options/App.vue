@@ -3,11 +3,11 @@
     <Menu :hosts="hosts" :selectedTab="selectedTab" :selectedHost="selectedHost" :selectedHostOption="selectedHostOption" @select="select" />
 
     <div class="body">
-      <NewHost @add="addHost" v-if="selectedTab === 'add'" />
+      <HostForm @add="addHost" v-if="selectedTab === 'add'" />
       <Config v-else-if="selectedTab === 'config'" @reload="reload" />
-      <LocalCommands :host="selectedHost" v-else-if="selectedHost && selectedHostOption === 'localProc'" :bus="bus" />
+      <LocalCommands :host="selectedHost" v-else-if="selectedHost && selectedHostOption === 'actions'" :bus="bus" />
       <Run :host="hosts[selectedHost]" v-else-if="selectedHost && selectedHostOption === 'run'" :selectedAction="selectedAction" :selectedScript="selectedScript" />
-      <EditHost :host="hosts[selectedHost]" @save="editHost" @remove="removeHost" v-else-if="selectedHost" />
+      <HostForm :host="hosts[selectedHost]" @edit="editHost" @remove="removeHost" v-else-if="selectedHost" />
       <div class="none" v-else>Select an option from the menu</div>
     </div>
   </div>
@@ -17,8 +17,7 @@
 import Vue from 'vue';
 import mixins from '../utils';
 import Menu from './Menu';
-import NewHost from './NewHost';
-import EditHost from './EditHost';
+import HostForm from './HostForm';
 import LocalCommands from './LocalCommands';
 import Config from './Config';
 import Run from './Run';
@@ -28,8 +27,7 @@ export default {
   mixins: [mixins],
   components: {
     Menu,
-    NewHost,
-    EditHost,
+    HostForm,
     LocalCommands,
     Config,
     Run,
@@ -58,14 +56,20 @@ export default {
 
     async reload() {
       this.hosts = await this.getHosts();
+      this.selectedHost = this.getSelectedHost();
+      this.selectedTab = this.getSelectedTab();
+
+      switch (this.selectedTab) {
+        case 'run':
+          this.selectedHostOption = 'run';
+          break;
+        case 'actions':
+          this.selectedHostOption = 'actions';
+          break;
+      }
     },
 
     async addHost(form) {
-      if (!this.isHostFormValid(form)) {
-        this.notify('Invalid device parameter values', 'Device configuration error');
-        return;
-      }
-
       this.loading = true;
 
       try {
@@ -86,11 +90,6 @@ export default {
     },
 
     async editHost(form) {
-      if (!this.isHostFormValid(form)) {
-        this.notify('Invalid device parameter values', 'Device configuration error');
-        return;
-      }
-
       this.loading = true;
 
       try {
@@ -136,6 +135,18 @@ export default {
       this.bus.$on('edit-script', script => {
         self.select('host', this.selectedHost, 'run', null, script);
       });
+    },
+  },
+
+  watch: {
+    selectedTab(newTab) {
+      this.setSelectedTab(newTab);
+    },
+
+    selectedHostOption(newOption) {
+      if (newOption?.length) {
+        this.setSelectedTab(newOption);
+      }
     },
   },
 

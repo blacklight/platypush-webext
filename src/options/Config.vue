@@ -89,6 +89,9 @@ export default {
     },
 
     async reload() {
+      this.clearUrlArgs();
+      this.setSelectedTab('config');
+
       const config = await this.loadConfig();
       this.hosts = config.hosts || [];
       this.config = JSON.stringify(config, null, '  ');

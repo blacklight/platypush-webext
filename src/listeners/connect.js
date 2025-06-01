@@ -69,7 +69,6 @@ const Service = (() => {
       switch (message.type) {
         case 'get':
           const commands = await browser.commands.getAll();
-          console.log('Available commands', commands);
           port.postMessage(commands);
           break;
       }
