@@ -76,9 +76,10 @@ export default {
     }, {}),
 
     mercury: {
-      parse: (url, html) => {
+      parse: (url, html, args) => {
         return new Promise((resolve) => {
           const port = browser.runtime.connect({ name: 'mercury' });
+          const apiArgs = Object.assign({ contentType: 'html' }, args || {});
           port.onMessage.addListener(response => {
             resolve(response);
           });
@@ -87,6 +88,7 @@ export default {
             type: 'parse',
             url: url,
             html: html,
+            ...apiArgs,
           });
         });
       },
