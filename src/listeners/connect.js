@@ -104,7 +104,7 @@ const Service = (() => {
       switch (message.type) {
         case 'parse':
           response = await Mercury.parse(message.url, {
-            contentType: 'html',
+            contentType: message.contentType || 'html',
             html: message.html,
           });
 
