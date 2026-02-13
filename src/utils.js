@@ -424,7 +424,8 @@ export default {
 
       this.loading = true;
       const config = JSON.stringify(await this.loadConfig());
-      const basedir = `\${Config.get("workdir")}/webext`;
+      const workdir = await this.getWorkdir(host);
+      const basedir = `${workdir}/webext`;
       const filename = `${basedir}/config.json`;
 
       try {
@@ -465,7 +466,8 @@ export default {
       }
 
       this.loading = true;
-      const basedir = `\${Config.get("workdir")}/webext`;
+      const workdir = await this.getWorkdir(host);
+      const basedir = `${workdir}/webext`;
       const filename = `${basedir}/config.json`;
 
       try {
@@ -479,6 +481,17 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+
+    async getWorkdir(host) {
+      config = await this.run(
+        {
+          action: 'config.get',
+        },
+        host
+      );
+
+      return config.workdir;
     },
 
     formToHost(form) {
